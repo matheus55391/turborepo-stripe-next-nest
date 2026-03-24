@@ -1,4 +1,4 @@
-# fullstack-auth
+# next-nest-stripe-monorepo
 
 Monorepo **Turborepo** com **Next.js** (web), **NestJS** (API), **Prisma** + **PostgreSQL**, autenticação com **JWT em cookie HTTP-only**.
 

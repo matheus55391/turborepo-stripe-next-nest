@@ -13,7 +13,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "fullstack-auth",
+  title: "next-nest-stripe-monorepo",
   description: "Next.js + NestJS com cookie HTTP-only",
 };
 

@@ -18,4 +18,5 @@ export type UserMe = {
   id: string;
   email: string;
   name: string | null;
+  plan: "FREE" | "STARTER";
 };

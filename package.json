@@ -1,5 +1,5 @@
 {
-  "name": "fullstack-auth",
+  "name": "next-nest-stripe-monorepo",
   "private": true,
   "scripts": {
     "build": "turbo run build",

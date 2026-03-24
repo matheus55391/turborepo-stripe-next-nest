@@ -24,7 +24,12 @@ export function ProfileCard() {
       <h2 className="m-0 text-xl font-semibold">
         {data.name?.trim() || "Sem nome"}
       </h2>
-      <p className="m-0 text-base text-muted">{data.email}</p>
+      <div className="flex items-center gap-2">
+        <p className="m-0 text-base text-muted">{data.email}</p>
+        <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+          {data.plan === "STARTER" ? "Starter" : "Grátis"}
+        </span>
+      </div>
       <button
         type="button"
         onClick={() => logout.mutate()}

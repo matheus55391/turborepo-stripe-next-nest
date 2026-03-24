@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   app.use(cookieParser());
   app.useGlobalPipes(
     new ValidationPipe({
@@ -19,7 +19,7 @@ async function bootstrap() {
     credentials: true,
   });
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('fullstack-auth API')
+    .setTitle('next-nest-stripe-monorepo API')
     .setDescription('Endpoints de autenticação com cookie HTTP-only')
     .setVersion('1.0')
     .addCookieAuth('access_token')

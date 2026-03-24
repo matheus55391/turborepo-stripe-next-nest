@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ProfileCardDynamic } from "@/components/profile-card-dynamic";
+import { BillingCardDynamic } from "@/components/billing-card-dynamic";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,10 @@ export default function DashboardPage() {
           ← Início
         </Link>
       </header>
-      <ProfileCardDynamic />
+      <div className="flex flex-col gap-6">
+        <ProfileCardDynamic />
+        <BillingCardDynamic />
+      </div>
     </div>
   );
 }

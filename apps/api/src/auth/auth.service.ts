@@ -5,13 +5,14 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import type { Plan } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
 const SALT_ROUNDS = 10;
 
-export type SafeUser = { id: string; email: string; name: string | null };
+export type SafeUser = { id: string; email: string; name: string | null; plan: Plan };
 
 @Injectable()
 export class AuthService {
@@ -24,8 +25,9 @@ export class AuthService {
     id: string;
     email: string;
     name: string | null;
+    plan: Plan;
   }): SafeUser {
-    return { id: user.id, email: user.email, name: user.name };
+    return { id: user.id, email: user.email, name: user.name, plan: user.plan };
   }
 
   async register(dto: RegisterDto): Promise<SafeUser> {
