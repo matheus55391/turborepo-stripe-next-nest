@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-danger: var(--danger);
+}
+
+:root {
+  --background: #fafafa;
+  --foreground: #0a0a0a;
+  --muted: #525252;
+  --border: #e5e5e5;
+  --surface: #ffffff;
+  --surface-hover: #f4f4f5;
+  --accent: #171717;
+  --accent-fg: #fafafa;
+  --danger: #b91c1c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #fafafa;
+    --muted: #a3a3a3;
+    --border: #262626;
+    --surface: #141414;
+    --surface-hover: #1f1f1f;
+    --accent: #fafafa;
+    --accent-fg: #171717;
+    --danger: #f87171;
+  }
+}
+
+@layer base {
+  html,
+  body {
+    @apply max-w-full overflow-x-hidden antialiased;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground;
+  }
+
+  *,
+  *::before,
+  *::after {
+    @apply box-border;
+  }
+
+  a {
+    @apply text-inherit;
+  }
+
+  input {
+    font: inherit;
+  }
+}
