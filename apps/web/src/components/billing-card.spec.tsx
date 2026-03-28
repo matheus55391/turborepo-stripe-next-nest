@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Plan, SubscriptionStatus } from '@repo/shared/types';
 
 const mockCheckoutMutate = jest.fn();
 const mockPortalMutate = jest.fn();
@@ -7,15 +8,15 @@ const mockCancelMutate = jest.fn();
 
 jest.mock('@/queries/use-profile-query', () => ({
   useProfileQuery: () => ({
-    data: { id: '1', email: 'a@b.com', name: 'Alice', plan: 'STARTER' },
+    data: { id: '1', email: 'a@b.com', name: 'Alice', plan: Plan.STARTER },
   }),
 }));
 
 jest.mock('@/queries/use-plans-query', () => ({
   usePlansQuery: () => ({
     data: [
-      { key: 'FREE', name: 'Grátis', price: 0, features: ['1 página'], limits: { maxPages: 1, maxLinksPerPage: 3 } },
-      { key: 'STARTER', name: 'Starter', price: 9.9, priceId: 'price_123', features: ['5 páginas'], limits: { maxPages: 5, maxLinksPerPage: 10 } },
+      { key: Plan.FREE, name: 'Grátis', price: 0, features: ['1 página'], limits: { maxPages: 1, maxLinksPerPage: 3 } },
+      { key: Plan.STARTER, name: 'Starter', price: 9.9, priceId: 'price_123', features: ['5 páginas'], limits: { maxPages: 5, maxLinksPerPage: 10 } },
     ],
     isLoading: false,
   }),
@@ -24,9 +25,9 @@ jest.mock('@/queries/use-plans-query', () => ({
 jest.mock('@/queries/use-subscription-query', () => ({
   useSubscriptionQuery: () => ({
     data: {
-      plan: 'STARTER',
+      plan: Plan.STARTER,
       subscription: {
-        status: 'ACTIVE',
+        status: SubscriptionStatus.ACTIVE,
         cancelAtPeriodEnd: false,
         currentPeriodEnd: '2026-04-24T00:00:00.000Z',
       },

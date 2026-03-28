@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useProfileQuery } from "@/queries/use-profile-query";
 import { usePlansQuery } from "@/queries/use-plans-query";
+import { SubscriptionStatus } from "@repo/shared/types";
 import type { PlanInfo } from "@repo/shared/types";
 import { useSubscriptionQuery } from "@/queries/use-subscription-query";
 import { useCheckoutMutation } from "@/queries/use-checkout-mutation";
@@ -94,7 +95,7 @@ export function BillingCard() {
   }
 
   const hasActiveSubscription =
-    subscription?.subscription?.status === "ACTIVE";
+    subscription?.subscription?.status === SubscriptionStatus.ACTIVE;
   const isCancelling = subscription?.subscription?.cancelAtPeriodEnd;
   const periodEnd = subscription?.subscription?.currentPeriodEnd;
 

@@ -1,19 +1,20 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Plan } from '@repo/shared/types';
 
 const mockMutate = jest.fn();
 
 jest.mock('@/queries/use-profile-query', () => ({
   useProfileQuery: () => ({
-    data: { id: '1', email: 'a@b.com', name: 'Alice', plan: 'STARTER' },
+    data: { id: '1', email: 'a@b.com', name: 'Alice', plan: Plan.STARTER },
   }),
 }));
 
 jest.mock('@/queries/use-plans-query', () => ({
   usePlansQuery: () => ({
     data: [
-      { key: 'FREE', name: 'Grátis' },
-      { key: 'STARTER', name: 'Starter' },
+      { key: Plan.FREE, name: 'Grátis' },
+      { key: Plan.STARTER, name: 'Starter' },
     ],
   }),
 }));

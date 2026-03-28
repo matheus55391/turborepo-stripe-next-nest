@@ -1,11 +1,12 @@
 import { useUserStore } from "./use-user-store";
+import { Plan } from "@repo/shared/types";
 import type { Profile } from "@repo/shared/types";
 
 const mockUser: Profile = {
   id: "u1",
   email: "test@example.com",
   name: "Test",
-  plan: "FREE",
+  plan: Plan.FREE,
 };
 
 describe("useUserStore", () => {

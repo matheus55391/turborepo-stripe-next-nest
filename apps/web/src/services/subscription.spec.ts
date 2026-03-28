@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { Plan, SubscriptionStatus } from "@repo/shared/types";
 import {
   fetchPlans,
   fetchSubscription,
@@ -16,14 +17,14 @@ jest.mock("@/lib/api", () => ({
 
 const mockPlans = [
   {
-    key: "FREE",
+    key: Plan.FREE,
     name: "Grátis",
     price: 0,
     limits: { maxPages: 1, maxLinksPerPage: 3 },
     features: ["1 página", "3 links por página"],
   },
   {
-    key: "STARTER",
+    key: Plan.STARTER,
     name: "Starter",
     price: 9.9,
     priceId: "price_123",
@@ -33,12 +34,12 @@ const mockPlans = [
 ];
 
 const mockSub = {
-  plan: "STARTER" as const,
+  plan: Plan.STARTER,
   subscription: {
     id: "sub_1",
     stripeSubscriptionId: "sub_stripe_1",
     stripePriceId: "price_123",
-    status: "ACTIVE" as const,
+    status: SubscriptionStatus.ACTIVE,
     currentPeriodEnd: "2026-04-24T00:00:00.000Z",
     cancelAtPeriodEnd: false,
   },
@@ -52,7 +53,7 @@ describe("fetchPlans", () => {
 
     expect(plans).toEqual(mockPlans);
     expect(plans).toHaveLength(2);
-    expect(plans[0].key).toBe("FREE");
+    expect(plans[0]!.key).toBe(Plan.FREE);
   });
 
   it("should call api.get with SUBSCRIPTION_PLANS route", async () => {
@@ -73,14 +74,14 @@ describe("fetchPlans", () => {
     (api.get as jest.Mock).mockResolvedValue({ data: { plans: mockPlans } });
 
     const plans = await fetchPlans();
-    expect(plans[0].priceId).toBeUndefined();
+    expect(plans[0]!.priceId).toBeUndefined();
   });
 
   it("STARTER plan should have priceId", async () => {
     (api.get as jest.Mock).mockResolvedValue({ data: { plans: mockPlans } });
 
     const plans = await fetchPlans();
-    expect(plans[1].priceId).toBeDefined();
+    expect(plans[1]!.priceId).toBeDefined();
   });
 });
 

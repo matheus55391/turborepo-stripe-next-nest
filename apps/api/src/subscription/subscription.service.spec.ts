@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { Plan } from '@prisma/client';
+import { Plan, SubscriptionStatus } from '@prisma/client';
 import { SubscriptionService } from './subscription.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
@@ -164,7 +164,7 @@ describe('SubscriptionService', () => {
 
   describe('getUserSubscription', () => {
     it('should return plan and subscription for user', async () => {
-      const mockSub = { id: 'sub-1', status: 'ACTIVE' };
+      const mockSub = { id: 'sub-1', status: SubscriptionStatus.ACTIVE };
       mockPrisma.user.findUniqueOrThrow.mockResolvedValue({
         id: 'user-1',
         plan: Plan.STARTER,
@@ -293,7 +293,7 @@ describe('SubscriptionService', () => {
       expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { stripeSubscriptionId: 'sub_stripe_123' },
-          data: expect.objectContaining({ status: 'ACTIVE' }),
+          data: expect.objectContaining({ status: SubscriptionStatus.ACTIVE }),
         }),
       );
     });
@@ -308,7 +308,7 @@ describe('SubscriptionService', () => {
 
       expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ status: 'CANCELED' }),
+          data: expect.objectContaining({ status: SubscriptionStatus.CANCELED }),
         }),
       );
       expect(mockPrisma.user.update).toHaveBeenCalledWith({
@@ -335,7 +335,7 @@ describe('SubscriptionService', () => {
 
       expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ status: 'PAST_DUE' }),
+          data: expect.objectContaining({ status: SubscriptionStatus.PAST_DUE }),
         }),
       );
     });

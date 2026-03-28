@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { Plan } from "@repo/shared/types";
 import { fetchProfile, loginFn, registerFn, logoutFn } from "./auth";
 
 jest.mock("@/lib/api", () => ({
@@ -16,7 +17,7 @@ jest.mock("@/stores/use-user-store", () => ({
   },
 }));
 
-const mockUser = { id: "1", email: "a@b.com", name: "A", plan: "FREE" as const };
+const mockUser = { id: "1", email: "a@b.com", name: "A", plan: Plan.FREE };
 
 describe("fetchProfile", () => {
   it("should return user on success", async () => {
