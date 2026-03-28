@@ -2,11 +2,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Plan } from '@repo/shared/types';
 
-const mockMutate = jest.fn();
+const mockLogoutMutate = jest.fn();
+const mockAvatarMutate = jest.fn();
 
 jest.mock('@/queries/use-profile-query', () => ({
   useProfileQuery: () => ({
-    data: { id: '1', email: 'a@b.com', name: 'Alice', plan: Plan.STARTER },
+    data: { id: '1', email: 'a@b.com', name: 'Alice', plan: Plan.STARTER, avatarUrl: null },
   }),
 }));
 
@@ -21,7 +22,14 @@ jest.mock('@/queries/use-plans-query', () => ({
 
 jest.mock('@/queries/use-logout-mutation', () => ({
   useLogoutMutation: () => ({
-    mutate: mockMutate,
+    mutate: mockLogoutMutate,
+    isPending: false,
+  }),
+}));
+
+jest.mock('@/queries/use-avatar-mutation', () => ({
+  useAvatarMutation: () => ({
+    mutate: mockAvatarMutate,
     isPending: false,
   }),
 }));
@@ -34,7 +42,10 @@ function wrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe('ProfileCard', () => {
-  beforeEach(() => mockMutate.mockClear());
+  beforeEach(() => {
+    mockLogoutMutate.mockClear();
+    mockAvatarMutate.mockClear();
+  });
 
   it('should render user name and email', () => {
     render(<ProfileCard />, { wrapper });
@@ -47,7 +58,7 @@ describe('ProfileCard', () => {
     expect(screen.getByText('Starter')).toBeTruthy();
   });
 
-  it('should show initial from name', () => {
+  it('should show initial from name as avatar fallback', () => {
     render(<ProfileCard />, { wrapper });
     expect(screen.getByText('A')).toBeTruthy();
   });
@@ -55,6 +66,19 @@ describe('ProfileCard', () => {
   it('should call logout on button click', () => {
     render(<ProfileCard />, { wrapper });
     fireEvent.click(screen.getByRole('button', { name: 'Sair' }));
-    expect(mockMutate).toHaveBeenCalled();
+    expect(mockLogoutMutate).toHaveBeenCalled();
+  });
+
+  it('should have avatar upload button', () => {
+    render(<ProfileCard />, { wrapper });
+    expect(screen.getByRole('button', { name: 'Alterar avatar' })).toBeTruthy();
+  });
+
+  it('should call avatar mutation when file is selected', () => {
+    render(<ProfileCard />, { wrapper });
+    const input = screen.getByTestId('avatar-input') as HTMLInputElement;
+    const file = new File(['img'], 'photo.jpg', { type: 'image/jpeg' });
+    fireEvent.change(input, { target: { files: [file] } });
+    expect(mockAvatarMutate).toHaveBeenCalledWith(file);
   });
 });

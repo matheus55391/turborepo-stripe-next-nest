@@ -5,13 +5,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PLAN_LIMITS } from '@repo/shared/types';
+import { RevalidationService } from '../common/revalidation.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 
 @Injectable()
 export class PageService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly revalidation: RevalidationService,
+  ) {}
 
   async create(userId: string, dto: CreatePageDto) {
     const user = await this.prisma.user.findUniqueOrThrow({
@@ -81,10 +85,18 @@ export class PageService {
       }
     }
 
-    return this.prisma.page.update({
+    const updated = await this.prisma.page.update({
       where: { id: pageId },
       data: dto,
     });
+
+    // Revalidate ISR: old slug (if changed) and new slug
+    if (dto.slug && dto.slug !== page.slug) {
+      this.revalidation.revalidatePage(page.slug);
+    }
+    this.revalidation.revalidatePage(updated.slug);
+
+    return updated;
   }
 
   async remove(pageId: string, userId: string) {
@@ -96,6 +108,7 @@ export class PageService {
     }
 
     await this.prisma.page.delete({ where: { id: pageId } });
+    this.revalidation.revalidatePage(page.slug);
     return { ok: true as const };
   }
 

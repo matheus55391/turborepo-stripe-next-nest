@@ -24,6 +24,7 @@ model User {
   email     String   @unique
   password  String
   name      String?
+  avatarUrl String?
   plan      Plan     @default(FREE)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

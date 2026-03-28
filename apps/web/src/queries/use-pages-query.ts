@@ -6,5 +6,6 @@ export function usePagesQuery() {
   return useQuery({
     queryKey: [QueryKey.PAGES],
     queryFn: fetchPages,
+    staleTime: 30 * 1000,
   });
 }

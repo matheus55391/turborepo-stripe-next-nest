@@ -7,7 +7,7 @@ import { PublicPageView } from "@/components/public-page-view";
 async function getPublicPage(slug: string): Promise<PublicPage | null> {
   try {
     const res = await fetch(`${API_URL}/pages/slug/${encodeURIComponent(slug)}`, {
-      cache: "no-store",
+      next: { revalidate: 60, tags: [`page-${slug}`] },
     });
     if (!res.ok) return null;
     return res.json();

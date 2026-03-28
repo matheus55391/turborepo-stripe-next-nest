@@ -45,3 +45,10 @@ export async function registerFn(data: RegisterForm): Promise<Profile> {
 export async function logoutFn(): Promise<void> {
   await api.post(AuthRoute.LOGOUT);
 }
+
+export async function uploadAvatarFn(file: File): Promise<Profile> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await api.patch<Profile>(AuthRoute.AVATAR, formData);
+  return data;
+}

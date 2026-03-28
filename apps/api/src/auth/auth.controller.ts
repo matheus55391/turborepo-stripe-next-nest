@@ -1,10 +1,28 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  MaxFileSizeValidator,
+  FileTypeValidator,
+  ParseFilePipe,
+  Patch,
+  Post,
+  Req,
+  Res,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { AuthService, type SafeUser } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { StorageService } from '../storage/storage.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 const ACCESS_COOKIE = 'access_token';
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -12,7 +30,11 @@ const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly storage: StorageService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   private setAuthCookie(res: Response, token: string) {
     const secure = process.env.NODE_ENV === 'production';
@@ -76,5 +98,49 @@ export class AuthController {
   @Get('me')
   me(@Req() req: Request & { user: SafeUser }): SafeUser {
     return req.user;
+  }
+
+  @ApiCookieAuth('access_token')
+  @ApiOperation({ summary: 'Upload de avatar do usuário' })
+  @ApiOkResponse({ description: 'Avatar atualizado, retorna perfil' })
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @Patch('avatar')
+  async uploadAvatar(
+    @Req() req: Request & { user: SafeUser },
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp|gif)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ): Promise<SafeUser> {
+    const oldAvatarUrl = req.user.avatarUrl;
+
+    const avatarUrl = await this.storage.upload(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+    );
+
+    if (oldAvatarUrl) {
+      await this.storage.delete(oldAvatarUrl);
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: req.user.id },
+      data: { avatarUrl },
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      plan: user.plan,
+      avatarUrl: user.avatarUrl,
+    };
   }
 }

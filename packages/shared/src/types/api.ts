@@ -5,6 +5,7 @@ export type Profile = {
   email: string;
   name: string | null;
   plan: Plan;
+  avatarUrl: string | null;
 };
 
 export type PlanInfo = {

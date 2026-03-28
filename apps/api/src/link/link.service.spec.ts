@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Plan } from '@prisma/client';
 import { LinkService } from './link.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RevalidationService } from '../common/revalidation.service';
 
 describe('LinkService', () => {
   let service: LinkService;
@@ -21,11 +22,16 @@ describe('LinkService', () => {
     click: { create: jest.fn() },
   };
 
+  const mockRevalidation = {
+    revalidatePage: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LinkService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: RevalidationService, useValue: mockRevalidation },
       ],
     }).compile();
 
@@ -38,6 +44,7 @@ describe('LinkService', () => {
   const stubPageForUser = () =>
     mockPrisma.page.findUnique.mockResolvedValue({
       id: 'p1',
+      slug: 'my-page',
       userId: 'u1',
     });
 
@@ -161,7 +168,7 @@ describe('LinkService', () => {
     it('should update the link', async () => {
       mockPrisma.link.findUnique.mockResolvedValue({
         id: 'l1',
-        page: { userId: 'u1' },
+        page: { userId: 'u1', slug: 'my-page' },
       });
       const updated = { id: 'l1', title: 'Updated' };
       mockPrisma.link.update.mockResolvedValue(updated);
@@ -182,7 +189,7 @@ describe('LinkService', () => {
     it('should throw NotFoundException if link belongs to another user', async () => {
       mockPrisma.link.findUnique.mockResolvedValue({
         id: 'l1',
-        page: { userId: 'other' },
+        page: { userId: 'other', slug: 'x' },
       });
 
       await expect(service.update('l1', 'u1', { title: 'X' })).rejects.toThrow(
@@ -195,7 +202,7 @@ describe('LinkService', () => {
     it('should delete the link and return ok', async () => {
       mockPrisma.link.findUnique.mockResolvedValue({
         id: 'l1',
-        page: { userId: 'u1' },
+        page: { userId: 'u1', slug: 'my-page' },
       });
 
       const result = await service.remove('l1', 'u1');

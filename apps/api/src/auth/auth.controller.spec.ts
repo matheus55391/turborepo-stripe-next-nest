@@ -3,6 +3,8 @@ import { Plan } from '@prisma/client';
 import type { Request } from 'express';
 import { AuthController } from './auth.controller';
 import { AuthService, type SafeUser } from './auth.service';
+import { StorageService } from '../storage/storage.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -11,6 +13,17 @@ describe('AuthController', () => {
     register: jest.fn(),
     validateUser: jest.fn(),
     signAccessToken: jest.fn(),
+  };
+
+  const mockStorageService = {
+    upload: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  const mockPrismaService = {
+    user: {
+      update: jest.fn(),
+    },
   };
 
   const createMockResponse = () => {
@@ -24,7 +37,11 @@ describe('AuthController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: mockAuthService }],
+      providers: [
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: StorageService, useValue: mockStorageService },
+        { provide: PrismaService, useValue: mockPrismaService },
+      ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
@@ -39,6 +56,7 @@ describe('AuthController', () => {
         email: 'a@b.com',
         name: 'Test',
         plan: Plan.FREE,
+        avatarUrl: null,
       };
       mockAuthService.register.mockResolvedValue(user);
       mockAuthService.signAccessToken.mockReturnValue('jwt-token');
@@ -70,6 +88,7 @@ describe('AuthController', () => {
         email: 'a@b.com',
         name: null,
         plan: Plan.FREE,
+        avatarUrl: null,
       };
       mockAuthService.validateUser.mockResolvedValue(user);
       mockAuthService.signAccessToken.mockReturnValue('jwt-token');
@@ -110,12 +129,84 @@ describe('AuthController', () => {
         email: 'a@b.com',
         name: 'Test',
         plan: Plan.FREE,
+        avatarUrl: null,
       };
       const req = { user } as Request & { user: SafeUser };
 
       const result = controller.me(req);
 
       expect(result).toEqual(user);
+    });
+  });
+
+  describe('uploadAvatar', () => {
+    it('should upload file, update user, and return safe user', async () => {
+      const reqUser: SafeUser = {
+        id: 'u1',
+        email: 'a@b.com',
+        name: 'Test',
+        plan: Plan.FREE,
+        avatarUrl: null,
+      };
+      const req = { user: reqUser } as Request & { user: SafeUser };
+      const file = {
+        buffer: Buffer.from('img'),
+        originalname: 'photo.jpg',
+        mimetype: 'image/jpeg',
+      } as Express.Multer.File;
+
+      mockStorageService.upload.mockResolvedValue('http://localhost:9000/avatars/uuid.jpg');
+      mockPrismaService.user.update.mockResolvedValue({
+        id: 'u1',
+        email: 'a@b.com',
+        name: 'Test',
+        plan: Plan.FREE,
+        avatarUrl: 'http://localhost:9000/avatars/uuid.jpg',
+      });
+
+      const result = await controller.uploadAvatar(req, file);
+
+      expect(mockStorageService.upload).toHaveBeenCalledWith(
+        file.buffer,
+        'photo.jpg',
+        'image/jpeg',
+      );
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        data: { avatarUrl: 'http://localhost:9000/avatars/uuid.jpg' },
+      });
+      expect(result.avatarUrl).toBe('http://localhost:9000/avatars/uuid.jpg');
+    });
+
+    it('should delete old avatar before uploading new one', async () => {
+      const reqUser: SafeUser = {
+        id: 'u1',
+        email: 'a@b.com',
+        name: 'Test',
+        plan: Plan.FREE,
+        avatarUrl: 'http://localhost:9000/avatars/old.jpg',
+      };
+      const req = { user: reqUser } as Request & { user: SafeUser };
+      const file = {
+        buffer: Buffer.from('img'),
+        originalname: 'new.png',
+        mimetype: 'image/png',
+      } as Express.Multer.File;
+
+      mockStorageService.upload.mockResolvedValue('http://localhost:9000/avatars/new-uuid.png');
+      mockPrismaService.user.update.mockResolvedValue({
+        id: 'u1',
+        email: 'a@b.com',
+        name: 'Test',
+        plan: Plan.FREE,
+        avatarUrl: 'http://localhost:9000/avatars/new-uuid.png',
+      });
+
+      await controller.uploadAvatar(req, file);
+
+      expect(mockStorageService.delete).toHaveBeenCalledWith(
+        'http://localhost:9000/avatars/old.jpg',
+      );
     });
   });
 });

@@ -7,6 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Plan } from '@prisma/client';
 import { PageService } from './page.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RevalidationService } from '../common/revalidation.service';
 
 describe('PageService', () => {
   let service: PageService;
@@ -24,11 +25,16 @@ describe('PageService', () => {
     },
   };
 
+  const mockRevalidation = {
+    revalidatePage: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PageService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: RevalidationService, useValue: mockRevalidation },
       ],
     }).compile();
 

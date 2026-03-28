@@ -5,6 +5,7 @@ export enum AuthRoute {
   LOGIN = '/auth/login',
   LOGOUT = '/auth/logout',
   ME = '/auth/me',
+  AVATAR = '/auth/avatar',
 }
 
 // ── Subscription ──
