@@ -1,21 +1,18 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { API_URL } from "@/services/api";
+import { useUserStore } from "@/stores/use-user-store";
+import { QueryKey } from "@repo/shared/routes";
+import { logoutFn } from "@/services/auth";
 
 export function useLogoutMutation() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`${API_URL}/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Não foi possível sair");
-    },
+    mutationFn: logoutFn,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["me"] });
+      useUserStore.getState().clearUser();
+      await queryClient.invalidateQueries({ queryKey: [QueryKey.PROFILE] });
       router.push("/login");
     },
   });

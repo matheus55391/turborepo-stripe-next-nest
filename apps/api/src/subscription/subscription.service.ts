@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Plan, SubscriptionStatus } from '@prisma/client';
 import Stripe from 'stripe';
-import { PLAN_LIMITS } from '../common/plan-limits';
+import { PLAN_LIMITS } from '@repo/shared/types';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
 
@@ -107,7 +107,7 @@ export class SubscriptionService {
       where: { userId },
     });
     if (!subscription) {
-      throw new Error('Nenhuma assinatura encontrada');
+      throw new NotFoundException('Nenhuma assinatura encontrada');
     }
 
     if (immediate) {

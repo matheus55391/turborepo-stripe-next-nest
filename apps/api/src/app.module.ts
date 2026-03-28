@@ -9,14 +9,17 @@ import { StripeModule } from './stripe/stripe.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { WebhookModule } from './webhook/webhook.module';
 
-const apiEnvDir = join(__dirname, '..');
+const envsDir = join(__dirname, '..', '..', '..', 'envs');
+const nodeEnv = process.env.NODE_ENV ?? 'development';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // Paths relative to this package (not process.cwd()). `.env` wins over `.env.example` for duplicate keys.
-      envFilePath: [join(apiEnvDir, '.env'), join(apiEnvDir, '.env.example')],
+      envFilePath: [
+        join(envsDir, `.env.${nodeEnv}`),
+        join(envsDir, '.env.example'),
+      ],
     }),
     PrismaModule,
     StripeModule,

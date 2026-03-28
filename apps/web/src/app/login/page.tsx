@@ -4,7 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { useLoginMutation } from "@/queries/use-login-mutation";
-import { type LoginForm, loginSchema } from "@/schemas/auth";
+import { loginSchema } from "@repo/shared/schemas";
+import type { LoginForm } from "@repo/shared/schemas";
 
 export default function LoginPage() {
   const mutation = useLoginMutation();

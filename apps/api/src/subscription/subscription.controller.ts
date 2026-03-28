@@ -10,6 +10,7 @@ import type { SafeUser } from '../auth/auth.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { CreatePortalDto } from './dto/create-portal.dto';
+import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
 import { SubscriptionService } from './subscription.service';
 
 @ApiTags('subscription')
@@ -74,11 +75,11 @@ export class SubscriptionController {
   @Post('cancel')
   async cancelSubscription(
     @Req() req: Request & { user: SafeUser },
-    @Body() body: { immediate?: boolean },
+    @Body() dto: CancelSubscriptionDto,
   ) {
     await this.subscriptionService.cancelSubscription(
       req.user.id,
-      body.immediate ?? false,
+      dto.immediate ?? false,
     );
     return { ok: true };
   }

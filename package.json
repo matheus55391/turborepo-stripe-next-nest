@@ -7,7 +7,12 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:studio": "pnpm --filter api prisma:studio",
+    "stripe:listen": "stripe listen --forward-to http://localhost:4000/webhooks/stripe",
     "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:cov": "turbo run test:cov",
+    "test:cov:report": "bash scripts/coverage-report.sh",
+    "test:watch": "turbo run test:watch",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"
   },

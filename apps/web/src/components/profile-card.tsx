@@ -1,11 +1,15 @@
 "use client";
 
-import { useMeQuery } from "@/queries/use-me-query";
+import { useProfileQuery } from "@/queries/use-profile-query";
 import { useLogoutMutation } from "@/queries/use-logout-mutation";
+import { usePlansQuery } from "@/queries/use-plans-query";
 
 export function ProfileCard() {
-  const { data } = useMeQuery();
+  const { data } = useProfileQuery();
+  const { data: plans } = usePlansQuery();
   const logout = useLogoutMutation();
+
+  const planName = plans?.find((p) => p.key === data.plan)?.name ?? data.plan;
 
   const initial = (
     data.name?.trim()?.[0] ??
@@ -27,7 +31,7 @@ export function ProfileCard() {
       <div className="flex items-center gap-2">
         <p className="m-0 text-base text-muted">{data.email}</p>
         <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
-          {data.plan === "STARTER" ? "Starter" : "Grátis"}
+          {planName}
         </span>
       </div>
       <button

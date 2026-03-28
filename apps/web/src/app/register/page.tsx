@@ -4,7 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { useRegisterMutation } from "@/queries/use-register-mutation";
-import { type RegisterForm, registerSchema } from "@/schemas/auth";
+import { registerSchema } from "@repo/shared/schemas";
+import type { RegisterForm } from "@repo/shared/schemas";
 
 export default function RegisterPage() {
   const mutation = useRegisterMutation();

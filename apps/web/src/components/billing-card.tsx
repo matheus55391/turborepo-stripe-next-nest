@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useMeQuery } from "@/queries/use-me-query";
-import { usePlansQuery, type PlanInfo } from "@/queries/use-plans-query";
+import { useProfileQuery } from "@/queries/use-profile-query";
+import { usePlansQuery } from "@/queries/use-plans-query";
+import type { PlanInfo } from "@repo/shared/types";
 import { useSubscriptionQuery } from "@/queries/use-subscription-query";
 import { useCheckoutMutation } from "@/queries/use-checkout-mutation";
 import { usePortalMutation } from "@/queries/use-portal-mutation";
@@ -76,7 +77,7 @@ function PlanCard({
 }
 
 export function BillingCard() {
-  const { data: user } = useMeQuery();
+  const { data: user } = useProfileQuery();
   const { data: plans, isLoading: plansLoading } = usePlansQuery();
   const { data: subscription } = useSubscriptionQuery();
   const checkout = useCheckoutMutation();
