@@ -7,7 +7,7 @@ export const BillingCardDynamic = dynamic(
   {
     ssr: false,
     loading: () => (
-      <p className="p-8 text-center text-muted">Carregando planos…</p>
+      <p className="p-8 text-center text-muted-foreground">Carregando planos…</p>
     ),
   },
 );

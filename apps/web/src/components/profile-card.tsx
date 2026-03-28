@@ -20,7 +20,7 @@ export function ProfileCard() {
   return (
     <article className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-6">
       <div
-        className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-lg font-semibold text-accent-fg"
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground"
         aria-hidden
       >
         {initial}
@@ -29,8 +29,8 @@ export function ProfileCard() {
         {data.name?.trim() || "Sem nome"}
       </h2>
       <div className="flex items-center gap-2">
-        <p className="m-0 text-base text-muted">{data.email}</p>
-        <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+        <p className="m-0 text-base text-muted-foreground">{data.email}</p>
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
           {planName}
         </span>
       </div>

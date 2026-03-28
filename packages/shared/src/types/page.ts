@@ -1,3 +1,5 @@
+import type { LinkItem } from './link';
+
 export type PageSummary = {
   id: string;
   slug: string;
@@ -8,17 +10,6 @@ export type PageSummary = {
   createdAt: string;
   updatedAt: string;
   _count: { links: number };
-};
-
-export type LinkItem = {
-  id: string;
-  title: string;
-  url: string;
-  position: number;
-  visible: boolean;
-  pageId: string;
-  createdAt: string;
-  updatedAt: string;
 };
 
 export type PageDetail = {
@@ -56,18 +47,4 @@ export type UpdatePageInput = {
   title?: string;
   bio?: string;
   published?: boolean;
-};
-
-export type CreateLinkInput = {
-  title: string;
-  url: string;
-  position?: number;
-  visible?: boolean;
-};
-
-export type UpdateLinkInput = {
-  title?: string;
-  url?: string;
-  position?: number;
-  visible?: boolean;
 };

@@ -7,7 +7,7 @@ export const ProfileCardDynamic = dynamic(
   {
     ssr: false,
     loading: () => (
-      <p className="p-8 text-center text-muted">Carregando perfil…</p>
+      <p className="p-8 text-center text-muted-foreground">Carregando perfil…</p>
     ),
   },
 );

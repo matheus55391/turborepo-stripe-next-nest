@@ -1,16 +1,16 @@
 import { api } from "@/lib/api";
-import { ApiRoute } from "@repo/shared/routes";
+import { SubscriptionRoute } from "@repo/shared/routes";
 import type { PlanInfo, SubscriptionInfo } from "@repo/shared/types";
 
 export async function fetchPlans(): Promise<PlanInfo[]> {
   const { data } = await api.get<{ plans: PlanInfo[] }>(
-    ApiRoute.SUBSCRIPTION_PLANS,
+    SubscriptionRoute.PLANS,
   );
   return data.plans;
 }
 
 export async function fetchSubscription(): Promise<SubscriptionInfo> {
-  const { data } = await api.get<SubscriptionInfo>(ApiRoute.SUBSCRIPTION);
+  const { data } = await api.get<SubscriptionInfo>(SubscriptionRoute.BASE);
   return data;
 }
 
@@ -18,7 +18,7 @@ export async function createCheckout(params: {
   priceId: string;
 }): Promise<string> {
   const { data } = await api.post<{ url: string }>(
-    ApiRoute.SUBSCRIPTION_CHECKOUT,
+    SubscriptionRoute.CHECKOUT,
     {
       priceId: params.priceId,
       successUrl: `${window.location.origin}/dashboard?checkout=success`,
@@ -30,7 +30,7 @@ export async function createCheckout(params: {
 
 export async function createPortalSession(): Promise<string> {
   const { data } = await api.post<{ url: string }>(
-    ApiRoute.SUBSCRIPTION_PORTAL,
+    SubscriptionRoute.PORTAL,
     {
       returnUrl: `${window.location.origin}/dashboard`,
     },
@@ -39,5 +39,5 @@ export async function createPortalSession(): Promise<string> {
 }
 
 export async function cancelSubscription(immediate = false): Promise<void> {
-  await api.post(ApiRoute.SUBSCRIPTION_CANCEL, { immediate });
+  await api.post(SubscriptionRoute.CANCEL, { immediate });
 }

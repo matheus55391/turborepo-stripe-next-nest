@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
 import {
-  ApiRoute,
+  PageRoute,
   pageRoute,
   pageSlugRoute,
   linksRoute,
@@ -20,7 +20,7 @@ import type {
 // ── Pages ──
 
 export async function fetchPages(): Promise<PageSummary[]> {
-  const { data } = await api.get<PageSummary[]>(ApiRoute.PAGES);
+  const { data } = await api.get<PageSummary[]>(PageRoute.BASE);
   return data;
 }
 
@@ -35,7 +35,7 @@ export async function fetchPublicPage(slug: string): Promise<PublicPage> {
 }
 
 export async function createPage(input: CreatePageInput): Promise<PageDetail> {
-  const { data } = await api.post<PageDetail>(ApiRoute.PAGES, input);
+  const { data } = await api.post<PageDetail>(PageRoute.BASE, input);
   return data;
 }
 

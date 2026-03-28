@@ -6,5 +6,6 @@ export function useProfileQuery() {
   return useSuspenseQuery({
     queryKey: [QueryKey.PROFILE],
     queryFn: fetchProfile,
+    retry: false,
   });
 }

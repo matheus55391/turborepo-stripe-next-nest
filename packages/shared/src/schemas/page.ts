@@ -14,15 +14,5 @@ export const updatePageSchema = createPageSchema.partial().extend({
   published: z.boolean().optional(),
 });
 
-export const createLinkSchema = z.object({
-  title: z.string().min(1, 'Título é obrigatório').max(60, 'Máximo 60 caracteres'),
-  url: z.string().url('URL inválida'),
-  visible: z.boolean().optional(),
-});
-
-export const updateLinkSchema = createLinkSchema.partial();
-
 export type CreatePageForm = z.infer<typeof createPageSchema>;
 export type UpdatePageForm = z.infer<typeof updatePageSchema>;
-export type CreateLinkForm = z.infer<typeof createLinkSchema>;
-export type UpdateLinkForm = z.infer<typeof updateLinkSchema>;

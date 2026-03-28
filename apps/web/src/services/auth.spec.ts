@@ -19,6 +19,10 @@ jest.mock("@/stores/use-user-store", () => ({
 
 const mockUser = { id: "1", email: "a@b.com", name: "A", plan: Plan.FREE };
 
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
 describe("fetchProfile", () => {
   it("should return user on success", async () => {
     (api.get as jest.Mock).mockResolvedValue({ data: mockUser });
@@ -36,16 +40,16 @@ describe("fetchProfile", () => {
   });
 
   it("should redirect on 401 error", async () => {
-    const spy = jest.spyOn(console, "error").mockImplementation(() => {});
-
     const axiosModule = jest.requireActual("axios");
     const error = new axiosModule.AxiosError("Unauthorized", "ERR", undefined, undefined, {
       status: 401,
     });
     (api.get as jest.Mock).mockRejectedValue(error);
+    (api.post as jest.Mock).mockResolvedValue({});
 
     await expect(fetchProfile()).rejects.toThrow();
-    spy.mockRestore();
+
+    expect(api.post).toHaveBeenCalledWith("/auth/logout");
   });
 
   it("should throw on non-401 error", async () => {
