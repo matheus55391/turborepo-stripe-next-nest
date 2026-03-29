@@ -6,11 +6,13 @@ import {
   RawBody,
 } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import Stripe from 'stripe';
 import { StripeService } from '../stripe/stripe.service';
 import { SubscriptionService } from '../subscription/subscription.service';
 
 @ApiExcludeController()
+@SkipThrottle()
 @Controller('webhooks/stripe')
 export class WebhookController {
   constructor(

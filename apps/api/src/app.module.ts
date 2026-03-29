@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule, ThrottlerStorage } from '@nestjs/throttler';
 import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
@@ -7,6 +9,7 @@ import { LinkModule } from './link/link.module';
 import { PageModule } from './page/page.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
+import { ThrottlerStorageRedis } from './redis/throttler-storage-redis';
 import { StorageModule } from './storage/storage.module';
 import { StripeModule } from './stripe/stripe.module';
 import { SubscriptionModule } from './subscription/subscription.module';
@@ -24,6 +27,11 @@ const nodeEnv = process.env.NODE_ENV ?? 'development';
         join(envsDir, '.env.example'),
       ],
     }),
+    ThrottlerModule.forRoot([
+      { name: 'default', ttl: 60_000, limit: 60 },
+      { name: 'strict', ttl: 60_000, limit: 5 },
+      { name: 'click', ttl: 10_000, limit: 10 },
+    ]),
     PrismaModule,
     RedisModule,
     StorageModule,
@@ -34,6 +42,10 @@ const nodeEnv = process.env.NODE_ENV ?? 'development';
     LinkModule,
     SubscriptionModule,
     WebhookModule,
+  ],
+  providers: [
+    { provide: ThrottlerStorage, useClass: ThrottlerStorageRedis },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

@@ -1,10 +1,9 @@
 import {
-  BadRequestException,
   Body,
   Controller,
+  FileTypeValidator,
   Get,
   MaxFileSizeValidator,
-  FileTypeValidator,
   ParseFilePipe,
   Patch,
   Post,
@@ -12,17 +11,18 @@ import {
   Res,
   UploadedFile,
   UseGuards,
-  UseInterceptors,
+  UseInterceptors
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
+import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import { AuthService, type SafeUser } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { StorageService } from '../storage/storage.service';
-import { PrismaService } from '../prisma/prisma.service';
 
 const ACCESS_COOKIE = 'access_token';
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -59,6 +59,7 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Criar conta' })
   @ApiOkResponse({ description: 'Usuário criado e cookie definido' })
+  @Throttle({ strict: { ttl: 60_000, limit: 5 } })
   @Post('register')
   async register(
     @Body() dto: RegisterDto,
@@ -72,6 +73,7 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Entrar' })
   @ApiOkResponse({ description: 'Autenticado e cookie definido' })
+  @Throttle({ strict: { ttl: 60_000, limit: 5 } })
   @Post('login')
   async login(
     @Body() dto: LoginDto,
@@ -103,6 +105,7 @@ export class AuthController {
   @ApiCookieAuth('access_token')
   @ApiOperation({ summary: 'Upload de avatar do usuário' })
   @ApiOkResponse({ description: 'Avatar atualizado, retorna perfil' })
+  @Throttle({ strict: { ttl: 60_000, limit: 5 } })
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file'))
   @Patch('avatar')
