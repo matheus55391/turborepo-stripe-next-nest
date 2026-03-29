@@ -8,6 +8,7 @@ import { PLAN_LIMITS } from '@repo/shared/types';
 import { RevalidationService } from '../common/revalidation.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+import { MetricsService } from '../metrics/metrics.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 
@@ -19,6 +20,7 @@ export class PageService {
     private readonly prisma: PrismaService,
     private readonly revalidation: RevalidationService,
     private readonly redis: RedisService,
+    private readonly metrics: MetricsService,
   ) {}
 
   async create(userId: string, dto: CreatePageDto) {
@@ -124,7 +126,11 @@ export class PageService {
     const cached = await this.redis.get<Record<string, unknown>>(
       `page:${slug}`,
     );
-    if (cached) return cached;
+    if (cached) {
+      this.metrics.cacheHitsTotal.inc({ key_prefix: 'page' });
+      return cached;
+    }
+    this.metrics.cacheMissesTotal.inc({ key_prefix: 'page' });
 
     const page = await this.prisma.page.findUnique({
       where: { slug },

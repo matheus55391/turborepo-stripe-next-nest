@@ -1,17 +1,20 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import {
   ThrottlerGuard,
   ThrottlerModule,
   ThrottlerStorage,
 } from '@nestjs/throttler';
+import { LoggerModule } from 'nestjs-pino';
 import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 import { CommonModule } from './common/common.module';
 import { HealthModule } from './health/health.module';
 import { LinkModule } from './link/link.module';
+import { HttpMetricsInterceptor } from './metrics/http-metrics.interceptor';
+import { MetricsModule } from './metrics/metrics.module';
 import { PageModule } from './page/page.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RabbitMQModule } from './rabbitmq/rabbitmq.module';
@@ -34,12 +37,23 @@ const nodeEnv = process.env.NODE_ENV ?? 'development';
         join(envsDir, '.env.example'),
       ],
     }),
+    LoggerModule.forRoot({
+      pinoHttp: {
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? { target: 'pino/file', options: { destination: 1 } }
+            : undefined,
+        autoLogging: { ignore: (req) => (req as { url?: string }).url === '/metrics' },
+        redact: ['req.headers.cookie', 'req.headers.authorization'],
+      },
+    }),
     ThrottlerModule.forRoot([
       { name: 'default', ttl: 60_000, limit: 60 },
       { name: 'strict', ttl: 60_000, limit: 5 },
       { name: 'click', ttl: 10_000, limit: 10 },
     ]),
     PrismaModule,
+    MetricsModule,
     RedisModule,
     StorageModule,
     RabbitMQModule,
@@ -54,6 +68,7 @@ const nodeEnv = process.env.NODE_ENV ?? 'development';
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    { provide: APP_INTERCEPTOR, useClass: HttpMetricsInterceptor },
     { provide: ThrottlerStorage, useClass: ThrottlerStorageRedis },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],

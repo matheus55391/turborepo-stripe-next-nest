@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as amqplib from 'amqplib';
+import { MetricsService } from '../metrics/metrics.service';
 import { DLQ_SUFFIX, MAX_RETRIES, QUEUES } from './rabbitmq.constants';
 
 @Injectable()
@@ -17,7 +18,10 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   private reconnecting = false;
   private destroyed = false;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly metrics: MetricsService,
+  ) {
     this.url = this.config.get<string>('RABBITMQ_URL', 'amqp://localhost:5672');
   }
 
@@ -101,6 +105,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
           const data: unknown = JSON.parse(msg.content.toString());
           await handler(data);
           channel.ack(msg);
+          this.metrics.queueProcessedTotal.inc({ queue });
         } catch (err) {
           const retries = getRetryCount(msg);
           if (retries < MAX_RETRIES) {
@@ -120,6 +125,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
               `Max retries reached for ${queue}, sending to DLQ: ${err}`,
             );
             channel.nack(msg, false, false);
+            this.metrics.queueFailedTotal.inc({ queue });
           }
         }
       })();

@@ -5,6 +5,7 @@ import { Plan } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { MetricsService } from '../metrics/metrics.service';
 
 jest.mock('bcrypt');
 
@@ -22,12 +23,17 @@ describe('AuthService', () => {
     sign: jest.fn(),
   };
 
+  const mockMetrics = {
+    authAttemptsTotal: { inc: jest.fn() },
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwt },
+        { provide: MetricsService, useValue: mockMetrics },
       ],
     }).compile();
 

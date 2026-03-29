@@ -9,6 +9,7 @@ import { PageService } from './page.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RevalidationService } from '../common/revalidation.service';
 import { RedisService } from '../redis/redis.service';
+import { MetricsService } from '../metrics/metrics.service';
 
 describe('PageService', () => {
   let service: PageService;
@@ -36,6 +37,11 @@ describe('PageService', () => {
     del: jest.fn(),
   };
 
+  const mockMetrics = {
+    cacheHitsTotal: { inc: jest.fn() },
+    cacheMissesTotal: { inc: jest.fn() },
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -43,6 +49,7 @@ describe('PageService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: RevalidationService, useValue: mockRevalidation },
         { provide: RedisService, useValue: mockRedis },
+        { provide: MetricsService, useValue: mockMetrics },
       ],
     }).compile();
 

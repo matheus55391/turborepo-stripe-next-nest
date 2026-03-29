@@ -33,8 +33,9 @@ Fullstack monorepo built with **Turborepo**, featuring a **Next.js 16** frontend
 | **Queue**      | RabbitMQ 3 (async processing, DLQ, retry with backoff)                                   |
 | **Storage**    | MinIO / S3 (avatar uploads)                                                              |
 | **Payments**   | Stripe (Checkout, Billing Portal, Webhooks)                                              |
+| **Observability** | Pino (structured logging) · Prometheus · Grafana · Loki · Promtail                      |
 | **Infra**      | Docker Compose · Nginx (reverse proxy + rate limiting) · Turborepo · pnpm Workspaces     |
-| **Testing**    | Jest 30 · Testing Library · ts-jest · next/jest · 210 tests                              |
+| **Testing**    | Jest 30 · Testing Library · ts-jest · next/jest · 219 tests                              |
 
 ---
 
@@ -60,6 +61,16 @@ Fullstack monorepo built with **Turborepo**, featuring a **Next.js 16** frontend
             │ PostgreSQL │ │  Redis   │ │ RabbitMQ │ │  MinIO   │ │  Stripe  │
             │   :5432    │ │  :6379   │ │  :5672   │ │  :9000   │ │ (extern) │
             └────────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘
+
+               ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+               │  Prometheus  │──▶│   Grafana    │   │    Loki      │
+               │   :9090      │   │   :3001      │◀──│   :3100      │
+               └──────┬───────┘   └──────────────┘   └──────┬───────┘
+                      │  scrapes /metrics                    │
+                      └──────────────────┘            ┌──────┴───────┐
+                                                      │  Promtail    │
+                                                      │ (log shipper)│
+                                                      └──────────────┘
 ```
 
 ### Key Flows
@@ -106,6 +117,7 @@ All queues have: persistent messages, dead-letter queues (`.dlq`), and retry wit
 │   │       ├── redis/        #   RedisService + ThrottlerStorage
 │   │       ├── storage/      #   MinIO/S3 upload service
 │   │       ├── rabbitmq/     #   RabbitMQ service + 4 consumers
+│   │       ├── metrics/      #   Prometheus metrics + HTTP interceptor
 │   │       ├── health/       #   Health check endpoint
 │   │       └── common/       #   RevalidationService, AllExceptionsFilter
 │   │
@@ -127,8 +139,13 @@ All queues have: persistent messages, dead-letter queues (`.dlq`), and retry wit
 │
 ├── envs/                     # Centralized environment variables
 ├── nginx/                    # Nginx reverse proxy config
+├── monitoring/               # Prometheus, Grafana, Loki, Promtail configs
+│   ├── prometheus/           #   Scrape config
+│   ├── grafana/              #   Datasources, provisioning, dashboards
+│   ├── loki/                 #   Log storage config
+│   └── promtail/             #   Log shipping config
 ├── scripts/                  # Helper scripts (coverage report)
-├── docker-compose.yml        # PostgreSQL + Redis + MinIO + RabbitMQ + Nginx
+├── docker-compose.yml        # 9 services: infra + monitoring
 └── turbo.json                # Turborepo pipeline
 ```
 
@@ -145,6 +162,10 @@ All queues have: persistent messages, dead-letter queues (`.dlq`), and retry wit
 | **Redis**      | `redis:7-alpine`             | `6379`        | Cache + rate limit storage     |
 | **MinIO**      | `minio/minio:latest`         | `9000` `9001` | Object storage (avatars)       |
 | **RabbitMQ**   | `rabbitmq:3-management-alpine` | `5672` `15672` | Message queue + management UI |
+| **Prometheus** | `prom/prometheus:latest`       | `9090`         | Metrics collection + alerting |
+| **Grafana**    | `grafana/grafana:latest`       | `3001`         | Dashboards + visualization    |
+| **Loki**       | `grafana/loki:latest`          | `3100`         | Log aggregation               |
+| **Promtail**   | `grafana/promtail:latest`      | —              | Log shipping from containers  |
 
 All services have health checks configured.
 
@@ -169,6 +190,35 @@ All services have health checks configured.
 - **Graceful shutdown** — `enableShutdownHooks()` ensures clean disconnection
 - **Global exception filter** — Consistent error format: `{ statusCode, message, timestamp }`
 - **Nginx headers** — `X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`, `Referrer-Policy`
+
+### Observability
+
+Full monitoring stack with structured logging, metrics, and dashboards.
+
+**Structured Logging (Pino):**
+- JSON-formatted logs via `nestjs-pino` — machine-parseable, includes request ID, method, URL, status, duration
+- Sensitive data redacted (cookies, authorization headers)
+- `/metrics` route excluded from access logs
+
+**Metrics (Prometheus + prom-client):**
+- `GET /metrics` endpoint exposes Prometheus-format metrics
+- **HTTP RED metrics** — request rate, error rate, duration (p50/p95/p99) by method, route, and status code
+- **Cache metrics** — hit/miss counters by key prefix
+- **Queue metrics** — processed/failed counters by queue name
+- **Auth metrics** — register/login attempts with success/failure labels
+- **Node.js runtime** — CPU, memory (RSS + heap), event loop lag, GC
+
+**Grafana Dashboard (10 panels):**
+- Request Rate · Latency Percentiles · Error Rate (5xx)
+- Cache Hit Ratio (gauge) · Cache Hits vs Misses
+- Queue Processed vs Failed · Auth Attempts
+- Requests by Route (table) · Node.js Memory
+- Application Logs (Loki integration)
+
+**Log Aggregation (Loki + Promtail):**
+- Promtail ships Docker container logs to Loki
+- Searchable in Grafana alongside metrics
+- 7-day retention
 
 ---
 
@@ -209,7 +259,8 @@ Interactive Swagger documentation is available at **`/docs`** when the API is ru
 
 | Method | Route     | Description                              | Auth |
 | ------ | --------- | ---------------------------------------- | ---- |
-| GET    | `/health` | Health check (database + Redis status)   | ✗    |
+| GET    | `/health`  | Health check (database + Redis status)   | ✗    |
+| GET    | `/metrics` | Prometheus metrics (prom-client)         | ✗    |
 
 ### Auth (`/auth`)
 
@@ -305,7 +356,7 @@ S3_SECRET_KEY="minioadmin"
 docker-compose up -d
 ```
 
-This starts PostgreSQL, Redis, MinIO, RabbitMQ, and Nginx.
+This starts PostgreSQL, Redis, MinIO, RabbitMQ, Nginx, Prometheus, Grafana, Loki, and Promtail.
 
 ### 4. Run migrations
 
@@ -328,6 +379,9 @@ pnpm run dev
 | **RabbitMQ UI**     | [http://localhost:15672](http://localhost:15672) (guest/guest)    |
 | **MinIO Console**   | [http://localhost:9001](http://localhost:9001) (minioadmin/minioadmin) |
 | **Nginx**           | [http://localhost](http://localhost)                              |
+| **Prometheus**      | [http://localhost:9090](http://localhost:9090)                    |
+| **Grafana**         | [http://localhost:3001](http://localhost:3001) (admin/admin)      |
+| **API Metrics**     | [http://localhost:4000/metrics](http://localhost:4000/metrics)    |
 
 ### 6. Stripe webhooks (development)
 
@@ -361,13 +415,13 @@ Run from the monorepo root with `pnpm run`:
 
 ## Testing
 
-The project uses **Jest 30** with **210 tests** across **27 suites**:
+The project uses **Jest 30** with **219 tests** across **28 suites**:
 
-**API (110 tests / 13 suites):**
+**API (119 tests / 14 suites):**
 - auth.service, auth.controller, page.service, link.service, webhook.controller
 - subscription.controller, subscription.service, jwt.strategy
 - rabbitmq.service, storage.service, throttler-storage-redis
-- health.controller, all-exceptions.filter
+- health.controller, all-exceptions.filter, metrics.service
 
 **Web (100 tests / 14 suites):**
 - queries (login, register, logout, me, plans, subscription, checkout, cancel, portal, avatar)

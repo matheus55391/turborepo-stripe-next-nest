@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { RabbitMQService } from './rabbitmq.service';
 import { QUEUES, DLQ_SUFFIX } from './rabbitmq.constants';
+import { MetricsService } from '../metrics/metrics.service';
 
 describe('RabbitMQService', () => {
   let service: RabbitMQService;
@@ -32,6 +33,11 @@ describe('RabbitMQService', () => {
     get: jest.fn().mockReturnValue('amqp://localhost:5672'),
   };
 
+  const mockMetrics = {
+    queueProcessedTotal: { inc: jest.fn() },
+    queueFailedTotal: { inc: jest.fn() },
+  };
+
   beforeEach(async () => {
     (amqplib.connect as jest.Mock).mockResolvedValue(mockConnection);
 
@@ -39,6 +45,7 @@ describe('RabbitMQService', () => {
       providers: [
         RabbitMQService,
         { provide: ConfigService, useValue: mockConfig },
+        { provide: MetricsService, useValue: mockMetrics },
       ],
     }).compile();
 
@@ -93,6 +100,7 @@ describe('RabbitMQService', () => {
         providers: [
           RabbitMQService,
           { provide: ConfigService, useValue: mockConfig },
+          { provide: MetricsService, useValue: mockMetrics },
         ],
       }).compile();
 
@@ -121,6 +129,7 @@ describe('RabbitMQService', () => {
         providers: [
           RabbitMQService,
           { provide: ConfigService, useValue: mockConfig },
+          { provide: MetricsService, useValue: mockMetrics },
         ],
       }).compile();
 
@@ -150,6 +159,7 @@ describe('RabbitMQService', () => {
         providers: [
           RabbitMQService,
           { provide: ConfigService, useValue: mockConfig },
+          { provide: MetricsService, useValue: mockMetrics },
         ],
       }).compile();
 

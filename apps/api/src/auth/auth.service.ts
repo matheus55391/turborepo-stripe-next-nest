@@ -6,6 +6,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import type { Plan } from '@prisma/client';
+import { MetricsService } from '../metrics/metrics.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -19,6 +20,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly metrics: MetricsService,
   ) {}
 
   private toSafeUser(user: {
@@ -46,6 +48,7 @@ export class AuthService {
         name: dto.name ?? null,
       },
     });
+    this.metrics.authAttemptsTotal.inc({ action: 'register', result: 'success' });
     return this.toSafeUser(user);
   }
 
@@ -58,8 +61,10 @@ export class AuthService {
     }
     const ok = await bcrypt.compare(dto.password, user.password);
     if (!ok) {
+      this.metrics.authAttemptsTotal.inc({ action: 'login', result: 'failure' });
       throw new UnauthorizedException('Credenciais inválidas');
     }
+    this.metrics.authAttemptsTotal.inc({ action: 'login', result: 'success' });
     return this.toSafeUser(user);
   }
 

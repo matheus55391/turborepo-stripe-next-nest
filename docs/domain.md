@@ -4,6 +4,8 @@
 
 Link-in-bio SaaS platform. Users create **Pages** (public profiles with a unique slug), add **Links** to them, and track **Clicks**. Two subscription tiers control resource limits via Stripe. Avatar uploads via MinIO/S3. Async processing via RabbitMQ. Redis caching for public pages.
 
+Full observability via structured logging (Pino), Prometheus metrics, Grafana dashboards, and Loki log aggregation.
+
 ---
 
 ## Data Model
@@ -81,6 +83,31 @@ Enforced at creation time. Exceeding limits → `ForbiddenException`.
 - Consumer calls `GET /api/revalidate?secret=...&slug=...` on Next.js
 - Next.js revalidates the static page via `revalidateTag()`
 
+### Observability
+
+**Structured Logging (Pino):**
+- `nestjs-pino` produces JSON logs with request ID, method, URL, status code, and duration
+- Sensitive headers (cookies, authorization) are redacted
+- `/metrics` endpoint excluded from access logs
+
+**Metrics (Prometheus):**
+- `GET /metrics` exposes Prometheus-format metrics via `prom-client`
+- HTTP RED metrics: request rate, error rate, duration histogram (buckets: 5ms–10s) by method/route/status
+- Cache metrics: `cache_hits_total` / `cache_misses_total` by key prefix
+- Queue metrics: `queue_processed_total` / `queue_failed_total` by queue name
+- Auth metrics: `auth_attempts_total` by action (register/login) and result (success/failure)
+- Default Node.js metrics: CPU, heap, RSS, event loop lag, GC
+- Route normalization: UUIDs and numeric IDs replaced with `:id` in labels
+
+**Grafana Dashboard:**
+- Pre-provisioned with 10 panels: Request Rate, Latency Percentiles (p50/p95/p99), Error Rate, Cache Hit Ratio, Cache Hits vs Misses, Queue Processed vs Failed, Auth Attempts, Requests by Route, Node.js Memory, Application Logs
+- Datasources: Prometheus (metrics) + Loki (logs)
+
+**Log Aggregation (Loki + Promtail):**
+- Promtail discovers Docker containers via Docker socket, filters to project containers
+- Logs shipped to Loki with container name and compose service labels
+- 7-day retention, searchable in Grafana
+
 ---
 
 ## API Endpoints
@@ -90,8 +117,9 @@ Enforced at creation time. Exceeding limits → `ForbiddenException`.
 | Method | Route | Auth | Description |
 |--------|-------|------|-------------|
 | GET | `/health` | No | Health check — reports database + Redis status |
+| GET | `/metrics` | No | Prometheus metrics (HTTP, cache, queue, auth, Node.js runtime) |
 
-Returns `{ status: 'ok' | 'degraded', checks: { database, redis } }`.
+Returns `{ status: 'ok' | 'degraded', checks: { database, redis } }` for `/health`.
 
 ### Auth
 
