@@ -7,6 +7,7 @@ const mockUser: Profile = {
   email: "test@example.com",
   name: "Test",
   plan: Plan.FREE,
+  avatarUrl: null,
 };
 
 describe("useUserStore", () => {

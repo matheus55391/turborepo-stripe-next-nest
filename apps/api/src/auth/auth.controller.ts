@@ -1,6 +1,31 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  FileTypeValidator,
+  Get,
+  MaxFileSizeValidator,
+  ParseFilePipe,
+  Patch,
+  Post,
+  Req,
+  Res,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiCookieAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
+import { PrismaService } from '../prisma/prisma.service';
+import { QUEUES } from '../rabbitmq/rabbitmq.constants';
+import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
+import { StorageService } from '../storage/storage.service';
 import { AuthService, type SafeUser } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -12,7 +37,12 @@ const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly storage: StorageService,
+    private readonly prisma: PrismaService,
+    private readonly rabbitmq: RabbitMQService,
+  ) {}
 
   private setAuthCookie(res: Response, token: string) {
     const secure = process.env.NODE_ENV === 'production';
@@ -37,6 +67,7 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Criar conta' })
   @ApiOkResponse({ description: 'Usuário criado e cookie definido' })
+  @Throttle({ strict: { ttl: 60_000, limit: 5 } })
   @Post('register')
   async register(
     @Body() dto: RegisterDto,
@@ -50,6 +81,7 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Entrar' })
   @ApiOkResponse({ description: 'Autenticado e cookie definido' })
+  @Throttle({ strict: { ttl: 60_000, limit: 5 } })
   @Post('login')
   async login(
     @Body() dto: LoginDto,
@@ -76,5 +108,55 @@ export class AuthController {
   @Get('me')
   me(@Req() req: Request & { user: SafeUser }): SafeUser {
     return req.user;
+  }
+
+  @ApiCookieAuth('access_token')
+  @ApiOperation({ summary: 'Upload de avatar do usuário' })
+  @ApiOkResponse({ description: 'Avatar atualizado, retorna perfil' })
+  @Throttle({ strict: { ttl: 60_000, limit: 5 } })
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @Patch('avatar')
+  async uploadAvatar(
+    @Req() req: Request & { user: SafeUser },
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp|gif)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ): Promise<SafeUser> {
+    const oldAvatarUrl: string | null = req.user.avatarUrl;
+
+    const avatarUrl = await this.storage.upload(
+      file.buffer,
+
+      file.originalname,
+
+      file.mimetype,
+    );
+
+    if (oldAvatarUrl) {
+      this.rabbitmq.publish(QUEUES.STORAGE_CLEANUP, {
+        url: oldAvatarUrl,
+      });
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: req.user.id },
+      data: { avatarUrl },
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      plan: user.plan,
+
+      avatarUrl: user.avatarUrl,
+    };
   }
 }

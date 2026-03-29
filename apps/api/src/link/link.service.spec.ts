@@ -3,6 +3,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Plan } from '@prisma/client';
 import { LinkService } from './link.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RevalidationService } from '../common/revalidation.service';
+import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
+import { QUEUES } from '../rabbitmq/rabbitmq.constants';
 
 describe('LinkService', () => {
   let service: LinkService;
@@ -21,11 +24,21 @@ describe('LinkService', () => {
     click: { create: jest.fn() },
   };
 
+  const mockRevalidation = {
+    revalidatePage: jest.fn(),
+  };
+
+  const mockRabbitMQ = {
+    publish: jest.fn().mockReturnValue(true),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LinkService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: RevalidationService, useValue: mockRevalidation },
+        { provide: RabbitMQService, useValue: mockRabbitMQ },
       ],
     }).compile();
 
@@ -38,6 +51,7 @@ describe('LinkService', () => {
   const stubPageForUser = () =>
     mockPrisma.page.findUnique.mockResolvedValue({
       id: 'p1',
+      slug: 'my-page',
       userId: 'u1',
     });
 
@@ -161,7 +175,7 @@ describe('LinkService', () => {
     it('should update the link', async () => {
       mockPrisma.link.findUnique.mockResolvedValue({
         id: 'l1',
-        page: { userId: 'u1' },
+        page: { userId: 'u1', slug: 'my-page' },
       });
       const updated = { id: 'l1', title: 'Updated' };
       mockPrisma.link.update.mockResolvedValue(updated);
@@ -182,7 +196,7 @@ describe('LinkService', () => {
     it('should throw NotFoundException if link belongs to another user', async () => {
       mockPrisma.link.findUnique.mockResolvedValue({
         id: 'l1',
-        page: { userId: 'other' },
+        page: { userId: 'other', slug: 'x' },
       });
 
       await expect(service.update('l1', 'u1', { title: 'X' })).rejects.toThrow(
@@ -195,7 +209,7 @@ describe('LinkService', () => {
     it('should delete the link and return ok', async () => {
       mockPrisma.link.findUnique.mockResolvedValue({
         id: 'l1',
-        page: { userId: 'u1' },
+        page: { userId: 'u1', slug: 'my-page' },
       });
 
       const result = await service.remove('l1', 'u1');
@@ -216,14 +230,14 @@ describe('LinkService', () => {
   });
 
   describe('trackClick', () => {
-    it('should create a click record and return ok', async () => {
+    it('should publish click event to RabbitMQ and return ok', async () => {
       mockPrisma.link.findUnique.mockResolvedValue({ id: 'l1' });
 
       const result = await service.trackClick('l1');
 
       expect(result).toEqual({ ok: true });
-      expect(mockPrisma.click.create).toHaveBeenCalledWith({
-        data: { linkId: 'l1' },
+      expect(mockRabbitMQ.publish).toHaveBeenCalledWith(QUEUES.CLICK_TRACKING, {
+        linkId: 'l1',
       });
     });
 

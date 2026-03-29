@@ -3,11 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "exports": {
-    "./schemas": "./src/schemas/index.ts",
-    "./types": "./src/types/index.ts",
-    "./routes": "./src/routes/index.ts"
+    "./schemas": {
+      "types": "./src/schemas/index.ts",
+      "default": "./dist/schemas/index.js"
+    },
+    "./types": {
+      "types": "./src/types/index.ts",
+      "default": "./dist/types/index.js"
+    },
+    "./routes": {
+      "types": "./src/routes/index.ts",
+      "default": "./dist/routes/index.js"
+    }
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {

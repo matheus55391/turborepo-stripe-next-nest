@@ -5,6 +5,7 @@ import { Plan } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { MetricsService } from '../metrics/metrics.service';
 
 jest.mock('bcrypt');
 
@@ -22,12 +23,17 @@ describe('AuthService', () => {
     sign: jest.fn(),
   };
 
+  const mockMetrics = {
+    authAttemptsTotal: { inc: jest.fn() },
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwt },
+        { provide: MetricsService, useValue: mockMetrics },
       ],
     }).compile();
 
@@ -46,6 +52,7 @@ describe('AuthService', () => {
         email: 'a@b.com',
         name: 'Test',
         plan: Plan.FREE,
+        avatarUrl: null,
         password: 'hashed-pw',
       };
       mockPrisma.user.create.mockResolvedValue(created);
@@ -61,6 +68,7 @@ describe('AuthService', () => {
         email: 'a@b.com',
         name: 'Test',
         plan: Plan.FREE,
+        avatarUrl: null,
       });
       expect(mockPrisma.user.create).toHaveBeenCalledWith({
         data: { email: 'a@b.com', password: 'hashed-pw', name: 'Test' },
@@ -83,6 +91,7 @@ describe('AuthService', () => {
         email: 'a@b.com',
         name: null,
         plan: Plan.FREE,
+        avatarUrl: null,
         password: 'hashed-pw',
       });
 
@@ -101,6 +110,7 @@ describe('AuthService', () => {
         email: 'a@b.com',
         name: 'Test',
         plan: Plan.FREE,
+        avatarUrl: null,
         password: 'hashed-pw',
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
@@ -115,6 +125,7 @@ describe('AuthService', () => {
         email: 'a@b.com',
         name: 'Test',
         plan: Plan.FREE,
+        avatarUrl: null,
       });
     });
 
@@ -149,6 +160,7 @@ describe('AuthService', () => {
         email: 'a@b.com',
         name: null,
         plan: Plan.FREE,
+        avatarUrl: null,
       });
 
       expect(result).toBe('token-123');

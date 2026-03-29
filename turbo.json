@@ -1,6 +1,7 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
+  "globalEnv": ["NODE_ENV", "REVALIDATION_SECRET"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -28,6 +29,7 @@
       "persistent": true
     },
     "dev": {
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
     }

@@ -19,7 +19,7 @@ export default function RegisterPage() {
     <div className="flex min-h-svh items-center justify-center p-8">
       <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-7 shadow-sm">
         <h1 className="mb-1 text-xl font-semibold">Criar conta</h1>
-        <p className="mb-5 text-sm text-muted">
+        <p className="mb-5 text-sm text-muted-foreground">
           Preencha os dados abaixo.
         </p>
 
@@ -86,14 +86,14 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            className="mt-1 w-full cursor-pointer rounded-lg border-0 bg-accent py-2.5 font-semibold text-accent-fg disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-1 w-full cursor-pointer rounded-lg border-0 bg-primary py-2.5 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
             disabled={mutation.isPending}
           >
             {mutation.isPending ? "Criando…" : "Cadastrar"}
           </button>
         </form>
 
-        <p className="mt-5 text-center text-sm text-muted">
+        <p className="mt-5 text-center text-sm text-muted-foreground">
           Já tem conta?{" "}
           <Link
             className="font-medium underline underline-offset-2"

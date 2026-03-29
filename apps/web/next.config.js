@@ -1,3 +1,4 @@
+/* global process */
 import { config } from "dotenv";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";

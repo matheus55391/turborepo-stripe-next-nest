@@ -2,17 +2,26 @@ import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { Plan, SubscriptionStatus } from '@prisma/client';
+import Stripe from 'stripe';
 import { SubscriptionService } from './subscription.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
 
 describe('SubscriptionService', () => {
   let service: SubscriptionService;
-  let configService: ConfigService;
 
   const mockPrisma = {
-    user: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
-    subscription: { findUnique: jest.fn(), upsert: jest.fn(), update: jest.fn(), delete: jest.fn() },
+    user: {
+      findUniqueOrThrow: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+    subscription: {
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
     $transaction: jest.fn(),
   };
 
@@ -20,7 +29,11 @@ describe('SubscriptionService', () => {
     customers: { create: jest.fn() },
     checkout: { sessions: { create: jest.fn() } },
     billingPortal: { sessions: { create: jest.fn() } },
-    subscriptions: { retrieve: jest.fn(), cancel: jest.fn(), update: jest.fn() },
+    subscriptions: {
+      retrieve: jest.fn(),
+      cancel: jest.fn(),
+      update: jest.fn(),
+    },
   };
 
   const mockConfig = {
@@ -44,7 +57,6 @@ describe('SubscriptionService', () => {
     }).compile();
 
     service = module.get<SubscriptionService>(SubscriptionService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -70,7 +82,7 @@ describe('SubscriptionService', () => {
     it('should return STARTER plan with priceId from config', () => {
       const plans = service.getPlans();
       expect(plans[1].priceId).toBe('price_test_123');
-      expect(configService.get).toHaveBeenCalledWith('STRIPE_STARTER_PRICE_ID');
+      expect(mockConfig.get).toHaveBeenCalledWith('STRIPE_STARTER_PRICE_ID');
     });
 
     it('should return limits for each plan', () => {
@@ -236,7 +248,7 @@ describe('SubscriptionService', () => {
       metadata: { userId: 'user-1' },
       mode: 'subscription',
       subscription: 'sub_stripe_123',
-    } as any;
+    } as unknown as Stripe.Checkout.Session;
 
     it('should upgrade user to STARTER and create subscription', async () => {
       const now = Date.now();
@@ -251,12 +263,17 @@ describe('SubscriptionService', () => {
 
       await service.handleCheckoutCompleted(mockSession);
 
-      expect(mockStripe.subscriptions.retrieve).toHaveBeenCalledWith('sub_stripe_123');
+      expect(mockStripe.subscriptions.retrieve).toHaveBeenCalledWith(
+        'sub_stripe_123',
+      );
       expect(mockPrisma.$transaction).toHaveBeenCalled();
     });
 
     it('should skip if no userId in metadata', async () => {
-      await service.handleCheckoutCompleted({ metadata: {}, mode: 'subscription' } as any);
+      await service.handleCheckoutCompleted({
+        metadata: {},
+        mode: 'subscription',
+      } as unknown as Stripe.Checkout.Session);
       expect(mockStripe.subscriptions.retrieve).not.toHaveBeenCalled();
     });
 
@@ -264,7 +281,7 @@ describe('SubscriptionService', () => {
       await service.handleCheckoutCompleted({
         metadata: { userId: 'user-1' },
         mode: 'payment',
-      } as any);
+      } as unknown as Stripe.Checkout.Session);
       expect(mockStripe.subscriptions.retrieve).not.toHaveBeenCalled();
     });
   });
@@ -280,7 +297,7 @@ describe('SubscriptionService', () => {
         billing_cycle_anchor: anchorSec,
         cancel_at_period_end: false,
         items: { data: [{ price: { id: 'price_starter' } }] },
-      }) as any;
+      }) as unknown as Stripe.Subscription;
 
     it('should update subscription status to ACTIVE', async () => {
       mockPrisma.subscription.findUnique.mockResolvedValue({
@@ -293,6 +310,7 @@ describe('SubscriptionService', () => {
       expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { stripeSubscriptionId: 'sub_stripe_123' },
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           data: expect.objectContaining({ status: SubscriptionStatus.ACTIVE }),
         }),
       );
@@ -308,7 +326,10 @@ describe('SubscriptionService', () => {
 
       expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ status: SubscriptionStatus.CANCELED }),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          data: expect.objectContaining({
+            status: SubscriptionStatus.CANCELED,
+          }),
         }),
       );
       expect(mockPrisma.user.update).toHaveBeenCalledWith({
@@ -335,7 +356,10 @@ describe('SubscriptionService', () => {
 
       expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ status: SubscriptionStatus.PAST_DUE }),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          data: expect.objectContaining({
+            status: SubscriptionStatus.PAST_DUE,
+          }),
         }),
       );
     });
@@ -351,7 +375,7 @@ describe('SubscriptionService', () => {
 
       await service.handleSubscriptionDeleted({
         id: 'sub_stripe_123',
-      } as any);
+      } as unknown as Stripe.Subscription);
 
       expect(mockPrisma.$transaction).toHaveBeenCalled();
     });
@@ -361,7 +385,7 @@ describe('SubscriptionService', () => {
 
       await service.handleSubscriptionDeleted({
         id: 'sub_stripe_123',
-      } as any);
+      } as unknown as Stripe.Subscription);
 
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });

@@ -1,8 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class CreatePageDto {
-  @ApiProperty({ example: 'meu-perfil', description: 'Slug único da página (URL)' })
+  @ApiProperty({
+    example: 'meu-perfil',
+    description: 'Slug único da página (URL)',
+  })
   @IsString()
   @MinLength(3)
   @MaxLength(40)

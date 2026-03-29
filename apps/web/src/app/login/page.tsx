@@ -19,18 +19,9 @@ export default function LoginPage() {
     <div className="flex min-h-svh items-center justify-center p-8">
       <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-7 shadow-sm">
         <h1 className="mb-1 text-xl font-semibold">Entrar</h1>
-        <p className="mb-5 text-sm text-muted">
+        <p className="mb-5 text-sm text-muted-foreground">
           Use seu e-mail e senha.
         </p>
-
-        {mutation.isError ? (
-          <div
-            className="mb-4 rounded-lg bg-danger/10 px-2.5 py-2 text-sm text-danger dark:bg-danger/15"
-            role="alert"
-          >
-            {(mutation.error as Error).message}
-          </div>
-        ) : null}
 
         <form
           onSubmit={handleSubmit((data) => mutation.mutate(data))}
@@ -70,14 +61,14 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="mt-1 w-full cursor-pointer rounded-lg border-0 bg-accent py-2.5 font-semibold text-accent-fg disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-1 w-full cursor-pointer rounded-lg border-0 bg-primary py-2.5 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
             disabled={mutation.isPending}
           >
             {mutation.isPending ? "Entrando…" : "Entrar"}
           </button>
         </form>
 
-        <p className="mt-5 text-center text-sm text-muted">
+        <p className="mt-5 text-center text-sm text-muted-foreground">
           Não tem conta?{" "}
           <Link
             className="font-medium underline underline-offset-2"

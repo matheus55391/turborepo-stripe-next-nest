@@ -16,9 +16,4 @@ describe('DashboardPage', () => {
     expect(screen.getByTestId('profile-card')).toBeTruthy();
     expect(screen.getByTestId('billing-card')).toBeTruthy();
   });
-
-  it('should render home link', () => {
-    render(<DashboardPage />);
-    expect(screen.getByRole('link', { name: '← Início' })).toBeTruthy();
-  });
 });

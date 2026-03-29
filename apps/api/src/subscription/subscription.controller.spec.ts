@@ -24,6 +24,7 @@ describe('SubscriptionController', () => {
     email: 'a@b.com',
     name: 'Test',
     plan: Plan.FREE,
+    avatarUrl: null,
   };
 
   beforeEach(async () => {

@@ -33,14 +33,14 @@ function PlanCard({
     <div
       className={`flex flex-col gap-3 rounded-xl border p-5 ${
         isCurrent
-          ? "border-accent bg-accent/5"
+          ? "border-primary bg-primary/5"
           : "border-border bg-surface"
       }`}
     >
       <div className="flex items-center justify-between">
         <h3 className="m-0 text-lg font-semibold">{plan.name}</h3>
         {isCurrent && (
-          <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-fg">
+          <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground">
             Atual
           </span>
         )}
@@ -52,12 +52,12 @@ function PlanCard({
         ) : (
           <>
             R$ {plan.price.toFixed(2).replace(".", ",")}
-            <span className="text-sm font-normal text-muted">/mês</span>
+            <span className="text-sm font-normal text-muted-foreground">/mês</span>
           </>
         )}
       </p>
 
-      <ul className="m-0 flex list-none flex-col gap-1 p-0 text-sm text-muted">
+      <ul className="m-0 flex list-none flex-col gap-1 p-0 text-sm text-muted-foreground">
         {plan.features.map((f) => (
           <li key={f}>✓ {f}</li>
         ))}
@@ -68,7 +68,7 @@ function PlanCard({
           type="button"
           onClick={onUpgrade}
           disabled={isLoading}
-          className="mt-1 cursor-pointer rounded-lg border-0 bg-accent px-4 py-2 text-sm font-semibold text-accent-fg transition-colors hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-1 cursor-pointer rounded-lg border-0 bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? "Redirecionando…" : "Fazer upgrade"}
         </button>
@@ -89,7 +89,7 @@ export function BillingCard() {
   if (plansLoading || !plans) {
     return (
       <div className="rounded-xl border border-border bg-surface p-6">
-        <p className="m-0 text-sm text-muted">Carregando planos…</p>
+        <p className="m-0 text-sm text-muted-foreground">Carregando planos…</p>
       </div>
     );
   }
@@ -128,7 +128,7 @@ export function BillingCard() {
       {hasActiveSubscription && periodEnd && (
         <div className="rounded-xl border border-border bg-surface p-4 text-sm">
           {isCancelling ? (
-            <p className="m-0 text-muted">
+            <p className="m-0 text-muted-foreground">
               Plano cancelado. Acesso disponível até{" "}
               <strong className="text-foreground">
                 {formatDate(periodEnd)}
@@ -136,7 +136,7 @@ export function BillingCard() {
               .
             </p>
           ) : (
-            <p className="m-0 text-muted">
+            <p className="m-0 text-muted-foreground">
               Sua assinatura renova em{" "}
               <strong className="text-foreground">
                 {formatDate(periodEnd)}
@@ -172,7 +172,7 @@ export function BillingCard() {
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted">Tem certeza?</span>
+                  <span className="text-sm text-muted-foreground">Tem certeza?</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -198,7 +198,7 @@ export function BillingCard() {
                   <button
                     type="button"
                     onClick={() => setShowConfirm(false)}
-                    className="cursor-pointer rounded-lg border border-border bg-transparent px-3 py-1.5 text-sm text-muted transition-colors hover:bg-surface-hover"
+                    className="cursor-pointer rounded-lg border border-border bg-transparent px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-surface-hover"
                   >
                     Não
                   </button>

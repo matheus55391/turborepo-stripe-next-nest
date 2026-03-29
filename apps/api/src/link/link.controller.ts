@@ -9,17 +9,14 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiCookieAuth,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import type { SafeUser } from '../auth/auth.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateLinkDto } from './dto/create-link.dto';
 import { UpdateLinkDto } from './dto/update-link.dto';
 import { LinkService } from './link.service';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('links')
 @Controller('pages/:pageId/links')
@@ -28,6 +25,7 @@ export class LinkController {
 
   /** Public — registrar clique */
   @ApiOperation({ summary: 'Registrar clique em um link' })
+  @Throttle({ click: { ttl: 10_000, limit: 10 } })
   @Post(':linkId/click')
   trackClick(@Param('linkId') linkId: string) {
     return this.linkService.trackClick(linkId);
