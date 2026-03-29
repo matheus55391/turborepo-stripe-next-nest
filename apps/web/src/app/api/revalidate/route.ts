@@ -14,6 +14,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing slug" }, { status: 400 });
   }
 
-  revalidateTag(`page-${slug}`);
+  revalidateTag(`page-${slug}`, { expire: 0 });
   return NextResponse.json({ revalidated: true, slug });
 }
