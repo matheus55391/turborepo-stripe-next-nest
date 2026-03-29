@@ -2,7 +2,6 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { toast } from "sonner";
-import { QueryKey } from "@repo/shared/routes";
 
 jest.mock("sonner", () => ({
   toast: { success: jest.fn(), error: jest.fn() },

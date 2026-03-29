@@ -11,13 +11,20 @@ import {
   Res,
   UploadedFile,
   UseGuards,
-  UseInterceptors
+  UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
+import { QUEUES } from '../rabbitmq/rabbitmq.constants';
+import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { StorageService } from '../storage/storage.service';
 import { AuthService, type SafeUser } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -34,6 +41,7 @@ export class AuthController {
     private readonly auth: AuthService,
     private readonly storage: StorageService,
     private readonly prisma: PrismaService,
+    private readonly rabbitmq: RabbitMQService,
   ) {}
 
   private setAuthCookie(res: Response, token: string) {
@@ -121,16 +129,22 @@ export class AuthController {
     )
     file: Express.Multer.File,
   ): Promise<SafeUser> {
-    const oldAvatarUrl = req.user.avatarUrl;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const oldAvatarUrl: string | null = req.user.avatarUrl;
 
     const avatarUrl = await this.storage.upload(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
       file.buffer,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
       file.originalname,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
       file.mimetype,
     );
 
     if (oldAvatarUrl) {
-      await this.storage.delete(oldAvatarUrl);
+      this.rabbitmq.publish(QUEUES.STORAGE_CLEANUP, {
+        url: oldAvatarUrl,
+      });
     }
 
     const user = await this.prisma.user.update({
@@ -143,6 +157,7 @@ export class AuthController {
       email: user.email,
       name: user.name,
       plan: user.plan,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       avatarUrl: user.avatarUrl,
     };
   }

@@ -34,10 +34,7 @@ export class ThrottlerStorageRedis implements ThrottlerStorage {
 
     // Set TTL on first hit
     if (totalHits === 1) {
-      await this.redis.client.expire(
-        storageKey,
-        Math.ceil(ttl / 1000),
-      );
+      await this.redis.client.expire(storageKey, Math.ceil(ttl / 1000));
     }
 
     const ttlRemaining = await this.redis.client.ttl(storageKey);

@@ -1,4 +1,5 @@
 import { ThrottlerStorageRedis } from './throttler-storage-redis';
+import type { RedisService } from './redis.service';
 
 describe('ThrottlerStorageRedis', () => {
   const mockClient = {
@@ -17,7 +18,7 @@ describe('ThrottlerStorageRedis', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    storage = new ThrottlerStorageRedis(mockRedis as any);
+    storage = new ThrottlerStorageRedis(mockRedis as unknown as RedisService);
   });
 
   it('should increment counter and set TTL on first hit', async () => {

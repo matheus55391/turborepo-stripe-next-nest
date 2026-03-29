@@ -8,8 +8,9 @@ import {
 import { ApiExcludeController } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import Stripe from 'stripe';
+import { QUEUES } from '../rabbitmq/rabbitmq.constants';
+import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { StripeService } from '../stripe/stripe.service';
-import { SubscriptionService } from '../subscription/subscription.service';
 
 @ApiExcludeController()
 @SkipThrottle()
@@ -17,7 +18,7 @@ import { SubscriptionService } from '../subscription/subscription.service';
 export class WebhookController {
   constructor(
     private readonly stripe: StripeService,
-    private readonly subscriptionService: SubscriptionService,
+    private readonly rabbitmq: RabbitMQService,
   ) {}
 
   @Post()
@@ -40,23 +41,10 @@ export class WebhookController {
       throw new BadRequestException('Invalid webhook signature');
     }
 
-    switch (event.type) {
-      case 'checkout.session.completed':
-        await this.subscriptionService.handleCheckoutCompleted(
-          event.data.object as Stripe.Checkout.Session,
-        );
-        break;
-      case 'customer.subscription.updated':
-        await this.subscriptionService.handleSubscriptionUpdated(
-          event.data.object as Stripe.Subscription,
-        );
-        break;
-      case 'customer.subscription.deleted':
-        await this.subscriptionService.handleSubscriptionDeleted(
-          event.data.object as Stripe.Subscription,
-        );
-        break;
-    }
+    this.rabbitmq.publish(QUEUES.WEBHOOK_PROCESSING, {
+      type: event.type,
+      data: event.data.object,
+    });
 
     return { received: true };
   }

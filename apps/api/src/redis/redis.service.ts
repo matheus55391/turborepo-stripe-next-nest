@@ -18,7 +18,7 @@ export class RedisService implements OnModuleDestroy {
       this.logger.error(`Redis connection error: ${err.message}`);
     });
 
-    this.client.connect().catch((err) => {
+    this.client.connect().catch((err: Error) => {
       this.logger.warn(`Redis not available: ${err.message}`);
     });
   }

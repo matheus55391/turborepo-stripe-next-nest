@@ -7,14 +7,18 @@ import {
 import { PLAN_LIMITS } from '@repo/shared/types';
 import { RevalidationService } from '../common/revalidation.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
+
+const PAGE_CACHE_TTL = 300; // 5 minutes
 
 @Injectable()
 export class PageService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly revalidation: RevalidationService,
+    private readonly redis: RedisService,
   ) {}
 
   async create(userId: string, dto: CreatePageDto) {
@@ -90,10 +94,12 @@ export class PageService {
       data: dto,
     });
 
-    // Revalidate ISR: old slug (if changed) and new slug
+    // Invalidate cache + revalidate ISR: old slug (if changed) and new slug
     if (dto.slug && dto.slug !== page.slug) {
+      await this.redis.del(`page:${page.slug}`);
       this.revalidation.revalidatePage(page.slug);
     }
+    await this.redis.del(`page:${updated.slug}`);
     this.revalidation.revalidatePage(updated.slug);
 
     return updated;
@@ -108,12 +114,18 @@ export class PageService {
     }
 
     await this.prisma.page.delete({ where: { id: pageId } });
+    await this.redis.del(`page:${page.slug}`);
     this.revalidation.revalidatePage(page.slug);
     return { ok: true as const };
   }
 
-  /** Public — returns page by slug with visible links */
+  /** Public — returns page by slug with visible links (cache-aside) */
   async findBySlug(slug: string) {
+    const cached = await this.redis.get<Record<string, unknown>>(
+      `page:${slug}`,
+    );
+    if (cached) return cached;
+
     const page = await this.prisma.page.findUnique({
       where: { slug },
       include: {
@@ -127,6 +139,8 @@ export class PageService {
     if (!page || !page.published) {
       throw new NotFoundException('Página não encontrada');
     }
+
+    await this.redis.set(`page:${slug}`, page, PAGE_CACHE_TTL);
     return page;
   }
 }

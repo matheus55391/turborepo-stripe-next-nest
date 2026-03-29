@@ -8,6 +8,7 @@ import { Plan } from '@prisma/client';
 import { PageService } from './page.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RevalidationService } from '../common/revalidation.service';
+import { RedisService } from '../redis/redis.service';
 
 describe('PageService', () => {
   let service: PageService;
@@ -29,12 +30,19 @@ describe('PageService', () => {
     revalidatePage: jest.fn(),
   };
 
+  const mockRedis = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PageService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: RevalidationService, useValue: mockRevalidation },
+        { provide: RedisService, useValue: mockRedis },
       ],
     }).compile();
 
@@ -221,7 +229,23 @@ describe('PageService', () => {
   });
 
   describe('findBySlug', () => {
-    it('should return published page with visible links', async () => {
+    it('should return cached page when available', async () => {
+      const cached = {
+        id: 'p1',
+        slug: 'my-page',
+        published: true,
+        links: [{ id: 'l1', visible: true }],
+        user: { name: 'Test' },
+      };
+      mockRedis.get.mockResolvedValue(cached);
+
+      const result = await service.findBySlug('my-page');
+
+      expect(result).toEqual(cached);
+      expect(mockPrisma.page.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('should return published page with visible links and cache it', async () => {
       const page = {
         id: 'p1',
         slug: 'my-page',
@@ -229,14 +253,17 @@ describe('PageService', () => {
         links: [{ id: 'l1', visible: true }],
         user: { name: 'Test' },
       };
+      mockRedis.get.mockResolvedValue(null);
       mockPrisma.page.findUnique.mockResolvedValue(page);
 
       const result = await service.findBySlug('my-page');
 
       expect(result).toEqual(page);
+      expect(mockRedis.set).toHaveBeenCalledWith('page:my-page', page, 300);
     });
 
     it('should throw NotFoundException if page not found', async () => {
+      mockRedis.get.mockResolvedValue(null);
       mockPrisma.page.findUnique.mockResolvedValue(null);
 
       await expect(service.findBySlug('nope')).rejects.toThrow(
@@ -245,6 +272,7 @@ describe('PageService', () => {
     });
 
     it('should throw NotFoundException if page is not published', async () => {
+      mockRedis.get.mockResolvedValue(null);
       mockPrisma.page.findUnique.mockResolvedValue({
         id: 'p1',
         published: false,

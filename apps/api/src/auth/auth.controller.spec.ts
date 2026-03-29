@@ -5,6 +5,8 @@ import { AuthController } from './auth.controller';
 import { AuthService, type SafeUser } from './auth.service';
 import { StorageService } from '../storage/storage.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
+import { QUEUES } from '../rabbitmq/rabbitmq.constants';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -26,6 +28,10 @@ describe('AuthController', () => {
     },
   };
 
+  const mockRabbitMQ = {
+    publish: jest.fn().mockReturnValue(true),
+  };
+
   const createMockResponse = () => {
     const res = {
       cookie: jest.fn().mockReturnThis(),
@@ -41,6 +47,7 @@ describe('AuthController', () => {
         { provide: AuthService, useValue: mockAuthService },
         { provide: StorageService, useValue: mockStorageService },
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: RabbitMQService, useValue: mockRabbitMQ },
       ],
     }).compile();
 
@@ -178,7 +185,7 @@ describe('AuthController', () => {
       expect(result.avatarUrl).toBe('http://localhost:9000/avatars/uuid.jpg');
     });
 
-    it('should delete old avatar before uploading new one', async () => {
+    it('should enqueue old avatar deletion via RabbitMQ', async () => {
       const reqUser: SafeUser = {
         id: 'u1',
         email: 'a@b.com',
@@ -204,8 +211,9 @@ describe('AuthController', () => {
 
       await controller.uploadAvatar(req, file);
 
-      expect(mockStorageService.delete).toHaveBeenCalledWith(
-        'http://localhost:9000/avatars/old.jpg',
+      expect(mockRabbitMQ.publish).toHaveBeenCalledWith(
+        QUEUES.STORAGE_CLEANUP,
+        { url: 'http://localhost:9000/avatars/old.jpg' },
       );
     });
   });

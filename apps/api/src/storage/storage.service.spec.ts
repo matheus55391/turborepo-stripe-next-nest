@@ -7,10 +7,30 @@ const mockSend = jest.fn();
 jest.mock('@aws-sdk/client-s3', () => {
   return {
     S3Client: jest.fn().mockImplementation(() => ({ send: mockSend })),
-    PutObjectCommand: jest.fn().mockImplementation((args) => ({ ...args, _type: 'PutObject' })),
-    DeleteObjectCommand: jest.fn().mockImplementation((args) => ({ ...args, _type: 'DeleteObject' })),
-    CreateBucketCommand: jest.fn().mockImplementation((args) => ({ ...args, _type: 'CreateBucket' })),
-    HeadBucketCommand: jest.fn().mockImplementation((args) => ({ ...args, _type: 'HeadBucket' })),
+    PutObjectCommand: jest
+      .fn()
+      .mockImplementation((args: Record<string, unknown>) => ({
+        ...args,
+        _type: 'PutObject',
+      })),
+    DeleteObjectCommand: jest
+      .fn()
+      .mockImplementation((args: Record<string, unknown>) => ({
+        ...args,
+        _type: 'DeleteObject',
+      })),
+    CreateBucketCommand: jest
+      .fn()
+      .mockImplementation((args: Record<string, unknown>) => ({
+        ...args,
+        _type: 'CreateBucket',
+      })),
+    HeadBucketCommand: jest
+      .fn()
+      .mockImplementation((args: Record<string, unknown>) => ({
+        ...args,
+        _type: 'HeadBucket',
+      })),
   };
 });
 

@@ -6,6 +6,8 @@ import {
 import { PLAN_LIMITS } from '@repo/shared/types';
 import { RevalidationService } from '../common/revalidation.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { QUEUES } from '../rabbitmq/rabbitmq.constants';
+import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { CreateLinkDto } from './dto/create-link.dto';
 import { UpdateLinkDto } from './dto/update-link.dto';
 
@@ -14,6 +16,7 @@ export class LinkService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly revalidation: RevalidationService,
+    private readonly rabbitmq: RabbitMQService,
   ) {}
 
   private async getPageForUser(pageId: string, userId: string) {
@@ -96,14 +99,14 @@ export class LinkService {
     return { ok: true as const };
   }
 
-  /** Public — track a click */
+  /** Public — track a click (async via RabbitMQ) */
   async trackClick(linkId: string) {
     const link = await this.prisma.link.findUnique({
       where: { id: linkId },
     });
     if (!link) throw new NotFoundException('Link não encontrado');
 
-    await this.prisma.click.create({ data: { linkId } });
+    this.rabbitmq.publish(QUEUES.CLICK_TRACKING, { linkId });
     return { ok: true as const };
   }
 }
