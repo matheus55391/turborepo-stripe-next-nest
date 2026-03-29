@@ -6,6 +6,7 @@ import {
   DeleteObjectCommand,
   CreateBucketCommand,
   HeadBucketCommand,
+  PutBucketPolicyCommand,
 } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 import { extname } from 'path';
@@ -45,6 +46,29 @@ export class StorageService implements OnModuleInit {
       } catch (err) {
         this.logger.warn(`Could not ensure bucket "${this.bucket}": ${err}`);
       }
+    }
+    await this.ensurePublicReadPolicy();
+  }
+
+  private async ensurePublicReadPolicy() {
+    const policy = JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Principal: '*',
+          Action: ['s3:GetObject'],
+          Resource: [`arn:aws:s3:::${this.bucket}/*`],
+        },
+      ],
+    });
+    try {
+      await this.s3.send(
+        new PutBucketPolicyCommand({ Bucket: this.bucket, Policy: policy }),
+      );
+      this.logger.log(`Public read policy set on "${this.bucket}"`);
+    } catch (err) {
+      this.logger.warn(`Could not set bucket policy: ${err}`);
     }
   }
 

@@ -31,6 +31,12 @@ jest.mock('@aws-sdk/client-s3', () => {
         ...args,
         _type: 'HeadBucket',
       })),
+    PutBucketPolicyCommand: jest
+      .fn()
+      .mockImplementation((args: Record<string, unknown>) => ({
+        ...args,
+        _type: 'PutBucketPolicy',
+      })),
   };
 });
 
@@ -62,18 +68,20 @@ describe('StorageService', () => {
     it('should create bucket if it does not exist', async () => {
       mockSend.mockRejectedValueOnce(new Error('NotFound'));
       mockSend.mockResolvedValueOnce({});
-
-      await service.onModuleInit();
-
-      expect(mockSend).toHaveBeenCalledTimes(2);
-    });
-
-    it('should skip creation if bucket exists', async () => {
       mockSend.mockResolvedValueOnce({});
 
       await service.onModuleInit();
 
-      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(mockSend).toHaveBeenCalledTimes(3);
+    });
+
+    it('should skip creation if bucket exists', async () => {
+      mockSend.mockResolvedValueOnce({});
+      mockSend.mockResolvedValueOnce({});
+
+      await service.onModuleInit();
+
+      expect(mockSend).toHaveBeenCalledTimes(2);
     });
   });
 
