@@ -43,10 +43,16 @@ const nodeEnv = process.env.NODE_ENV ?? 'development';
           process.env.NODE_ENV !== 'production'
             ? {
                 target: 'pino-pretty',
-                options: { colorize: true, singleLine: true, translateTime: 'HH:MM:ss.l' },
+                options: {
+                  colorize: true,
+                  singleLine: true,
+                  translateTime: 'HH:MM:ss.l',
+                },
               }
             : undefined,
-        autoLogging: { ignore: (req) => (req as { url?: string }).url === '/metrics' },
+        autoLogging: {
+          ignore: (req) => (req as { url?: string }).url === '/metrics',
+        },
         redact: ['req.headers.cookie', 'req.headers.authorization'],
       },
     }),

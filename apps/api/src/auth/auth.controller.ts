@@ -129,15 +129,13 @@ export class AuthController {
     )
     file: Express.Multer.File,
   ): Promise<SafeUser> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const oldAvatarUrl: string | null = req.user.avatarUrl;
 
     const avatarUrl = await this.storage.upload(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
       file.buffer,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+
       file.originalname,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+
       file.mimetype,
     );
 
@@ -157,7 +155,7 @@ export class AuthController {
       email: user.email,
       name: user.name,
       plan: user.plan,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       avatarUrl: user.avatarUrl,
     };
   }

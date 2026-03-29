@@ -236,10 +236,9 @@ describe('LinkService', () => {
       const result = await service.trackClick('l1');
 
       expect(result).toEqual({ ok: true });
-      expect(mockRabbitMQ.publish).toHaveBeenCalledWith(
-        QUEUES.CLICK_TRACKING,
-        { linkId: 'l1' },
-      );
+      expect(mockRabbitMQ.publish).toHaveBeenCalledWith(QUEUES.CLICK_TRACKING, {
+        linkId: 'l1',
+      });
     });
 
     it('should throw NotFoundException if link not found', async () => {

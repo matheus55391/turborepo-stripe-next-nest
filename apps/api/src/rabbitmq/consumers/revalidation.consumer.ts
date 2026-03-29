@@ -13,13 +13,10 @@ export class RevalidationConsumer implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    await this.rabbitmq.consume(
-      QUEUES.REVALIDATION,
-      async (data: unknown) => {
-        const { slug } = data as { slug: string };
-        await this.revalidation.executeRevalidation(slug);
-        this.logger.debug(`Revalidation executed for slug "${slug}"`);
-      },
-    );
+    await this.rabbitmq.consume(QUEUES.REVALIDATION, async (data: unknown) => {
+      const { slug } = data as { slug: string };
+      await this.revalidation.executeRevalidation(slug);
+      this.logger.debug(`Revalidation executed for slug "${slug}"`);
+    });
   }
 }

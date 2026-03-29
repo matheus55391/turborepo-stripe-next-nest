@@ -47,8 +47,7 @@ export class HttpMetricsInterceptor implements NestInterceptor {
 
   private normalizeRoute(req: Request): string {
     // Use the matched route pattern if available, otherwise fallback to path
-    const route = (req as unknown as { route?: { path?: string } }).route
-      ?.path;
+    const route = (req as unknown as { route?: { path?: string } }).route?.path;
     if (route) return route;
 
     // Normalize UUIDs and numeric IDs out of the path

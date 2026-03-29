@@ -13,7 +13,13 @@ import { RegisterDto } from './dto/register.dto';
 
 const SALT_ROUNDS = 10;
 
-export type SafeUser = { id: string; email: string; name: string | null; plan: Plan; avatarUrl: string | null };
+export type SafeUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  plan: Plan;
+  avatarUrl: string | null;
+};
 
 @Injectable()
 export class AuthService {
@@ -30,7 +36,13 @@ export class AuthService {
     plan: Plan;
     avatarUrl: string | null;
   }): SafeUser {
-    return { id: user.id, email: user.email, name: user.name, plan: user.plan, avatarUrl: user.avatarUrl };
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      plan: user.plan,
+      avatarUrl: user.avatarUrl,
+    };
   }
 
   async register(dto: RegisterDto): Promise<SafeUser> {
@@ -48,7 +60,10 @@ export class AuthService {
         name: dto.name ?? null,
       },
     });
-    this.metrics.authAttemptsTotal.inc({ action: 'register', result: 'success' });
+    this.metrics.authAttemptsTotal.inc({
+      action: 'register',
+      result: 'success',
+    });
     return this.toSafeUser(user);
   }
 
@@ -61,7 +76,10 @@ export class AuthService {
     }
     const ok = await bcrypt.compare(dto.password, user.password);
     if (!ok) {
-      this.metrics.authAttemptsTotal.inc({ action: 'login', result: 'failure' });
+      this.metrics.authAttemptsTotal.inc({
+        action: 'login',
+        result: 'failure',
+      });
       throw new UnauthorizedException('Credenciais inválidas');
     }
     this.metrics.authAttemptsTotal.inc({ action: 'login', result: 'success' });

@@ -9,12 +9,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiCookieAuth,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import type { SafeUser } from '../auth/auth.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -46,10 +41,7 @@ export class PageController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Criar nova página' })
   @Post()
-  create(
-    @Req() req: Request & { user: SafeUser },
-    @Body() dto: CreatePageDto,
-  ) {
+  create(@Req() req: Request & { user: SafeUser }, @Body() dto: CreatePageDto) {
     return this.pageService.create(req.user.id, dto);
   }
 
@@ -57,10 +49,7 @@ export class PageController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Detalhes da página com links' })
   @Get(':id')
-  findOne(
-    @Req() req: Request & { user: SafeUser },
-    @Param('id') id: string,
-  ) {
+  findOne(@Req() req: Request & { user: SafeUser }, @Param('id') id: string) {
     return this.pageService.findOne(id, req.user.id);
   }
 
@@ -80,10 +69,7 @@ export class PageController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Excluir página' })
   @Delete(':id')
-  remove(
-    @Req() req: Request & { user: SafeUser },
-    @Param('id') id: string,
-  ) {
+  remove(@Req() req: Request & { user: SafeUser }, @Param('id') id: string) {
     return this.pageService.remove(id, req.user.id);
   }
 }

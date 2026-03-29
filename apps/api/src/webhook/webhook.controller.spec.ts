@@ -31,33 +31,30 @@ describe('WebhookController', () => {
 
   afterEach(() => jest.clearAllMocks());
 
-  it('should throw BadRequestException when signature is missing', async () => {
-    await expect(
-      controller.handleWebhook(Buffer.from('{}'), ''),
-    ).rejects.toThrow(BadRequestException);
+  it('should throw BadRequestException when signature is missing', () => {
+    expect(() => controller.handleWebhook(Buffer.from('{}'), '')).toThrow(
+      BadRequestException,
+    );
   });
 
-  it('should throw BadRequestException when signature is invalid', async () => {
+  it('should throw BadRequestException when signature is invalid', () => {
     mockStripe.webhooks.constructEvent.mockImplementation(() => {
       throw new Error('invalid sig');
     });
 
-    await expect(
+    expect(() =>
       controller.handleWebhook(Buffer.from('{}'), 'sig_bad'),
-    ).rejects.toThrow(BadRequestException);
+    ).toThrow(BadRequestException);
   });
 
-  it('should publish checkout.session.completed to RabbitMQ', async () => {
+  it('should publish checkout.session.completed to RabbitMQ', () => {
     const session = { id: 'cs_1', mode: 'subscription' };
     mockStripe.webhooks.constructEvent.mockReturnValue({
       type: 'checkout.session.completed',
       data: { object: session },
     });
 
-    const result = await controller.handleWebhook(
-      Buffer.from('body'),
-      'sig_valid',
-    );
+    const result = controller.handleWebhook(Buffer.from('body'), 'sig_valid');
 
     expect(result).toEqual({ received: true });
     expect(mockRabbitMQ.publish).toHaveBeenCalledWith(
@@ -66,14 +63,14 @@ describe('WebhookController', () => {
     );
   });
 
-  it('should publish customer.subscription.updated to RabbitMQ', async () => {
+  it('should publish customer.subscription.updated to RabbitMQ', () => {
     const sub = { id: 'sub_1' };
     mockStripe.webhooks.constructEvent.mockReturnValue({
       type: 'customer.subscription.updated',
       data: { object: sub },
     });
 
-    await controller.handleWebhook(Buffer.from('body'), 'sig_valid');
+    controller.handleWebhook(Buffer.from('body'), 'sig_valid');
 
     expect(mockRabbitMQ.publish).toHaveBeenCalledWith(
       QUEUES.WEBHOOK_PROCESSING,
@@ -81,14 +78,14 @@ describe('WebhookController', () => {
     );
   });
 
-  it('should publish customer.subscription.deleted to RabbitMQ', async () => {
+  it('should publish customer.subscription.deleted to RabbitMQ', () => {
     const sub = { id: 'sub_1' };
     mockStripe.webhooks.constructEvent.mockReturnValue({
       type: 'customer.subscription.deleted',
       data: { object: sub },
     });
 
-    await controller.handleWebhook(Buffer.from('body'), 'sig_valid');
+    controller.handleWebhook(Buffer.from('body'), 'sig_valid');
 
     expect(mockRabbitMQ.publish).toHaveBeenCalledWith(
       QUEUES.WEBHOOK_PROCESSING,
@@ -96,16 +93,13 @@ describe('WebhookController', () => {
     );
   });
 
-  it('should publish unknown event types to RabbitMQ', async () => {
+  it('should publish unknown event types to RabbitMQ', () => {
     mockStripe.webhooks.constructEvent.mockReturnValue({
       type: 'some.unknown.event',
       data: { object: {} },
     });
 
-    const result = await controller.handleWebhook(
-      Buffer.from('body'),
-      'sig_valid',
-    );
+    const result = controller.handleWebhook(Buffer.from('body'), 'sig_valid');
 
     expect(result).toEqual({ received: true });
     expect(mockRabbitMQ.publish).toHaveBeenCalledWith(

@@ -162,7 +162,9 @@ describe('AuthController', () => {
         mimetype: 'image/jpeg',
       } as Express.Multer.File;
 
-      mockStorageService.upload.mockResolvedValue('http://localhost:9000/avatars/uuid.jpg');
+      mockStorageService.upload.mockResolvedValue(
+        'http://localhost:9000/avatars/uuid.jpg',
+      );
       mockPrismaService.user.update.mockResolvedValue({
         id: 'u1',
         email: 'a@b.com',
@@ -200,7 +202,9 @@ describe('AuthController', () => {
         mimetype: 'image/png',
       } as Express.Multer.File;
 
-      mockStorageService.upload.mockResolvedValue('http://localhost:9000/avatars/new-uuid.png');
+      mockStorageService.upload.mockResolvedValue(
+        'http://localhost:9000/avatars/new-uuid.png',
+      );
       mockPrismaService.user.update.mockResolvedValue({
         id: 'u1',
         email: 'a@b.com',

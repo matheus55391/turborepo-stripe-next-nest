@@ -23,7 +23,9 @@ export class RevalidationService {
   /** Enqueue revalidation via RabbitMQ */
   revalidatePage(slug: string): void {
     if (!this.secret) {
-      this.logger.warn('REVALIDATION_SECRET not set, skipping ISR revalidation');
+      this.logger.warn(
+        'REVALIDATION_SECRET not set, skipping ISR revalidation',
+      );
       return;
     }
     this.rabbitmq.publish(QUEUES.REVALIDATION, { slug });
@@ -42,12 +44,16 @@ export class RevalidationService {
       });
 
       if (!res.ok) {
-        this.logger.warn(`Revalidation failed for slug "${slug}": ${res.status}`);
+        this.logger.warn(
+          `Revalidation failed for slug "${slug}": ${res.status}`,
+        );
       } else {
         this.logger.log(`Revalidated ISR cache for slug "${slug}"`);
       }
     } catch (error) {
-      this.logger.warn(`Revalidation request failed for slug "${slug}": ${error}`);
+      this.logger.warn(
+        `Revalidation request failed for slug "${slug}": ${error}`,
+      );
     }
   }
 }

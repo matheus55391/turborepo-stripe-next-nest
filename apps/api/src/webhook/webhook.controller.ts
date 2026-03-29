@@ -22,7 +22,7 @@ export class WebhookController {
   ) {}
 
   @Post()
-  async handleWebhook(
+  handleWebhook(
     @RawBody() rawBody: Buffer,
     @Headers('stripe-signature') signature: string,
   ) {

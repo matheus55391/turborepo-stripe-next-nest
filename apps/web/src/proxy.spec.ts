@@ -17,7 +17,7 @@ function createRequest(pathname: string, hasToken: boolean) {
     cookies: {
       has: (name: string) => hasToken && name === 'access_token',
     },
-  } as any;
+  } as unknown as Parameters<typeof proxy>[0];
 }
 
 describe('proxy middleware', () => {

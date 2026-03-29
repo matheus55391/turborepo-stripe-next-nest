@@ -9,11 +9,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiCookieAuth,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import type { SafeUser } from '../auth/auth.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
