@@ -2,14 +2,14 @@
 
 ## Overview
 
-Link-in-bio SaaS platform. Users create **Pages** (public profiles with a unique slug), add **Links** to them, and track **Clicks**. Two subscription tiers control resource limits via Stripe.
+Link-in-bio SaaS platform. Users create **Pages** (public profiles with a unique slug), add **Links** to them, and track **Clicks**. Two subscription tiers control resource limits via Stripe. Avatar uploads via MinIO/S3. Async processing via RabbitMQ. Redis caching for public pages.
 
 ---
 
 ## Data Model
 
 ```
-User (id, email, password, name, plan, stripeCustomerId)
+User (id, email, password, name, plan, stripeCustomerId, avatarUrl)
 ├── Subscription (stripeSubscriptionId, status, periodDates, cancelAtPeriodEnd)
 └── Page (slug*, title, bio, avatarUrl, published)
     └── Link (title, url, position, visible)
@@ -33,7 +33,65 @@ Enforced at creation time. Exceeding limits → `ForbiddenException`.
 
 ---
 
+## Infrastructure
+
+### Caching (Redis)
+
+- **Cache-aside** on `GET /pages/slug/:slug` — key `page:{slug}`, TTL 5 minutes
+- On cache miss → query Postgres → write to Redis
+- Cache invalidated on page update or delete (`redis.del()`)
+- Also used as **rate limiter storage** for `@nestjs/throttler`
+
+### Message Queue (RabbitMQ)
+
+| Queue | DLQ | Purpose |
+|-------|-----|---------|
+| `click-tracking` | `click-tracking.dlq` | Async click analytics |
+| `revalidation` | `revalidation.dlq` | ISR on-demand revalidation |
+| `storage-cleanup` | `storage-cleanup.dlq` | Old avatar file deletion |
+| `webhook-processing` | `webhook-processing.dlq` | Stripe event processing |
+
+- All messages are **persistent** (durable queues)
+- Failed messages retry up to **3 times** (via `x-retry-count` header)
+- After max retries → message goes to Dead Letter Queue (`.dlq`)
+- Connection auto-reconnects on failure (5s delay)
+
+### Object Storage (MinIO / S3)
+
+- Avatar uploads stored in `avatars` bucket
+- Files named `{uuid}{ext}` (flat structure)
+- Old avatars cleaned up asynchronously via `storage-cleanup` queue
+- Public access via Nginx proxy at `/storage/`
+
+### Reverse Proxy (Nginx)
+
+- Load balances to API (`:4000`) and Web (`:3000`) upstream pools
+- **Rate limiting zones:**
+  - `api_global`: 30 requests/second
+  - `auth_strict`: 5 requests/minute (login/register)
+  - `click`: 10 requests/second
+- Security headers: `X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`, `Referrer-Policy`
+- Gzip compression, 5 MB body limit
+- `/storage/` proxied to MinIO with 1-hour cache headers
+- WebSocket support for Next.js HMR
+
+### ISR Revalidation
+
+- When a page is updated/deleted, the API publishes to the `revalidation` queue
+- Consumer calls `GET /api/revalidate?secret=...&slug=...` on Next.js
+- Next.js revalidates the static page via `revalidateTag()`
+
+---
+
 ## API Endpoints
+
+### Health
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/health` | No | Health check — reports database + Redis status |
+
+Returns `{ status: 'ok' | 'degraded', checks: { database, redis } }`.
 
 ### Auth
 
@@ -43,6 +101,7 @@ Enforced at creation time. Exceeding limits → `ForbiddenException`.
 | POST | `/auth/login` | No | Authenticate, sets JWT cookie (7 days) |
 | POST | `/auth/logout` | No | Clears auth cookie |
 | GET | `/auth/me` | JWT | Returns current user profile |
+| PATCH | `/auth/avatar` | JWT | Upload avatar image (max 2 MB, jpeg/png/webp) |
 
 ### Pages
 
@@ -53,7 +112,7 @@ Enforced at creation time. Exceeding limits → `ForbiddenException`.
 | GET | `/pages/:id` | JWT | Page detail + links (ownership check) |
 | PATCH | `/pages/:id` | JWT | Update page (slug uniqueness re-checked) |
 | DELETE | `/pages/:id` | JWT | Delete page (cascades) |
-| GET | `/pages/slug/:slug` | No | **Public** — published page + visible links only |
+| GET | `/pages/slug/:slug` | No | **Public** — published page + visible links (Redis cached) |
 
 ### Links
 
@@ -63,7 +122,7 @@ Enforced at creation time. Exceeding limits → `ForbiddenException`.
 | POST | `/pages/:pageId/links` | JWT | Create link (plan limit enforced) |
 | PATCH | `/pages/:pageId/links/:linkId` | JWT | Update link properties |
 | DELETE | `/pages/:pageId/links/:linkId` | JWT | Delete link (cascades clicks) |
-| POST | `/pages/:pageId/links/:linkId/click` | No | **Public** — track click |
+| POST | `/pages/:pageId/links/:linkId/click` | No | **Public** — track click (async via RabbitMQ) |
 
 ### Subscription
 
@@ -79,7 +138,7 @@ Enforced at creation time. Exceeding limits → `ForbiddenException`.
 
 | Method | Route | Auth | Description |
 |--------|-------|------|-------------|
-| POST | `/webhooks/stripe` | Stripe signature | Handles checkout + subscription lifecycle |
+| POST | `/webhooks/stripe` | Stripe signature | Handles checkout + subscription lifecycle (async via RabbitMQ) |
 
 ---
 
@@ -90,7 +149,8 @@ User clicks upgrade
   → POST /subscription/checkout
   → Redirect to Stripe Checkout
   → Stripe sends checkout.session.completed webhook
-  → Create Subscription record + upgrade user plan to STARTER
+  → Webhook queued to RabbitMQ (webhook-processing)
+  → Consumer creates Subscription record + upgrades user plan to STARTER
 
 Stripe renews/updates subscription
   → customer.subscription.updated webhook
@@ -125,6 +185,16 @@ Subscription status becomes "canceled"
 
 ## Error Handling
 
+All errors follow a consistent format via `AllExceptionsFilter`:
+
+```json
+{
+  "statusCode": 400,
+  "message": "Error description",
+  "timestamp": "2025-01-01T00:00:00.000Z"
+}
+```
+
 | Exception | When |
 |-----------|------|
 | `ConflictException` | Duplicate email, duplicate slug |
@@ -135,8 +205,18 @@ Subscription status becomes "canceled"
 
 ---
 
+## Security
+
+- **Helmet** — Sets standard security headers on all API responses
+- **HTTP-only cookies** — JWT never exposed to JavaScript (7-day expiry)
+- **Dual-layer rate limiting** — Nginx `limit_req_zone` + NestJS `@nestjs/throttler` with Redis storage
+- **Graceful shutdown** — `enableShutdownHooks()` ensures clean DB/Redis/RabbitMQ disconnection
+- **Nginx headers** — `X-Frame-Options DENY`, `X-Content-Type-Options nosniff`, `X-XSS-Protection`
+
+---
+
 ## Access Control
 
 - All CRUD operations validate `req.user.id === entity.userId`
-- Public routes: page by slug, link click tracking, plan listing
+- Public routes: page by slug, link click tracking, plan listing, health check
 - JWT delivered via HTTP-only cookie (7-day expiry)
